@@ -4,4 +4,4 @@ A Discord Bot for Dystopika's Community Challenge, as well as custom moderation 
 
 
 ## This bot is not currently functional!
-You will receive errors if you try and run this at the moment, just need a place to store safely for a bit :)
+This is technically not true - if you download the source for this bot and run it yourself, as long as things are defined as they should be, it'll run. However, this is not feature complete.
