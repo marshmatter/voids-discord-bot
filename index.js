@@ -43,7 +43,7 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.on('messageCreate', async (message) => {
-// making sure the bot doesn't go into a loop talking to itself, that'd be wild.
+    // making sure the bot doesn't go into a loop talking to itself, that'd be wild.
     if (message.channel.type === 1 && !message.author.bot) {
         const embed = new EmbedBuilder()
             .setTitle('User Response')
@@ -68,7 +68,16 @@ client.on('messageCreate', async (message) => {
 });
 
 client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`);
+    console.log(`Logged in as ${client.user.tag}!`);
+
+    // Set the bot's status to "Now Playing"
+    client.user.setPresence({
+        activities: [{
+            name: 'Dystopika', // You can replace this with whatever game or activity you want the bot to "play"
+            type: 0, // Activity Type 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching | using "Streaming" will set their icon to purple!
+        }],
+        status: 'online',
+    });
 });
 
 client.login(process.env.BOT_TOKEN);
