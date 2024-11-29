@@ -14,15 +14,22 @@ module.exports = {
             option
                 .setName('warningid')
                 .setDescription('The ID of the predefined warning.')
-                .setRequired(true)),
+                .setRequired(true))
+        .addStringOption(option =>
+            option
+                .setName('context')
+                .setDescription('Optional additional context for the warning.')
+                .setRequired(false)), 
 
     async execute(interaction) {
         const targetUser = interaction.options.getUser('user');
         const warningId = interaction.options.getString('warningid');
-        const auditLogChannelId = '1311790814501929032'; // Need a moderator channel set up for Audit Logs. This will allow us to see when moderators /warn someone. Another reminder for me to not forget this >_<
+        const context = interaction.options.getString('context') || null; // Context is optional when executing the /warn command :D
+        const auditLogChannelId = '1311790814501929032'; // This is here to remind myself to move auditlogChannelId to .env rather than defining it in warn.js like I have no idea what I'm doing... 🙄 (I do this a lot tbh)
 
         console.log('Target User:', targetUser);
         console.log('Warning ID:', warningId);
+        console.log('Additional Information:', context);
 
         if (!warningId) {
             return interaction.reply({ content: 'You must provide a valid warning ID.', ephemeral: true });
@@ -44,13 +51,14 @@ module.exports = {
 
             const description = warningDetails[0].description;
 
-            await db.execute('INSERT INTO warnings (user_id, description) VALUES (?, ?)', [targetUser.id, description]);
+            await db.execute('INSERT INTO warnings (user_id, warning_id, description, context) VALUES (?, ?, ?, ?)', [targetUser.id, warningId, description, context]);
 
             const dmEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle('You Have Received a Warning')
                 .addFields(
-                    { name: 'Reason', value: description }
+                    { name: 'Reason', value: description },
+                    context ? { name: 'Additional Information', value: context } : {} // This will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
                 )
                 .setFooter({ text: `Issued by ${interaction.guild.name}` })
                 .setTimestamp();
@@ -69,7 +77,8 @@ module.exports = {
                 .setDescription(`Successfully issued a warning to ${targetUser.tag}.`)
                 .addFields(
                     { name: 'Warning ID', value: warningId, inline: true },
-                    { name: 'Reason', value: description, inline: false }
+                    { name: 'Reason', value: description, inline: false },
+                    context ? { name: 'Additional Information', value: context, inline: false } : {} // As stated before, this will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
                 )
                 .setFooter({ text: dmStatus })
                 .setTimestamp();
@@ -83,7 +92,8 @@ module.exports = {
                     { name: 'Moderator', value: interaction.user.tag, inline: true },
                     { name: 'Warned User', value: targetUser.tag, inline: true },
                     { name: 'Warning ID', value: warningId, inline: true },
-                    { name: 'Reason', value: description, inline: false }
+                    { name: 'Reason', value: description, inline: false },
+                    context ? { name: 'Additional Information', value: context, inline: false } : {} // As stated TWICE before..this will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
                 )
                 .setFooter({ text: `Warning issued at`, iconURL: interaction.user.displayAvatarURL() })
                 .setTimestamp();
