@@ -15,7 +15,7 @@ module.exports = {
         const targetUser = interaction.options.getUser('user');
         const moderator = interaction.user;
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID; // Making sure that the individual running the /warnings command is a Moderator.
 
         const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
         if (!hasModeratorRole) {
