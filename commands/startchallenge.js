@@ -4,25 +4,29 @@ const mysql = require('mysql2/promise');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('startchallenge')
-        .setDescription('Start a new weekly challenge.')
+        .setDescription('Start a new community challenge.')
         .addStringOption(option =>
             option
                 .setName('theme')
-                .setDescription('The theme for this week\'s challenge.')
+                .setDescription('The theme for this community challenge.')
                 .setRequired(false)
         ),
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        // This checks if a user has the "ManageGuild" permission. This likely will need to change to another mod-only permission.
-        if (!interaction.member.permissions.has('ManageGuild')) {
+        // Retrieve the moderator role ID from the .env file
+        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+
+        // Check if the user has the required role
+        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        if (!hasModeratorRole) {
             return interaction.editReply({ content: 'You do not have permission to use this command.' });
         }
 
         const theme = interaction.options.getString('theme') || 'The possibilities are endless!';
         const challengeChannelId = '1311528683713990656'; // REMINDER FOR BRANT - change the "challenge channel ID"
-        const contestRoleId = '1286214789369958471'; // Same with this, we need to create a "Weekly Challenge" role that users can assign to themselves. DO NOT FORGET, FUTURE ME!
+        const contestRoleId = '1286214789369958471'; // Same with this, we need to create a "Community Challenge" role that users can assign to themselves. DO NOT FORGET, FUTURE ME!
         const db = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
@@ -31,16 +35,17 @@ module.exports = {
         });
 
         try {
-            // When /startchallenge is run, this will automatically make the previous challenge inactive. Only run /startchallenge once, if you make a mistake, just remember doing it again will mark the current challenge inactive, if users already submitted, they will have to be notified to submit again.
+            // Deactivate the current active challenge
             await db.execute('UPDATE challenges SET active = 0 WHERE active = 1');
 
+            // Insert a new active challenge
             await db.execute('INSERT INTO challenges (theme, active) VALUES (?, 1)', [theme]);
 
             const challengeChannel = await interaction.client.channels.fetch(challengeChannelId);
             const embed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle('Weekly Challenge Started!')
-                .setDescription(`A new weekly challenge has begun! Share your best screenshots with us!.`)
+                .setTitle('Community Challenge Started!')
+                .setDescription(`A new community challenge has begun! Share your best screenshots with us!`)
                 .addFields(
                     { name: 'Theme', value: theme },
                     { name: 'How to Participate', value: '1. Upload your screenshot to Imgur.\n2. Use the `/submit [url]` command to enter.' }
@@ -50,7 +55,7 @@ module.exports = {
 
             await challengeChannel.send({ content: `<@&${contestRoleId}>`, embeds: [embed] });
 
-            // Sends a message confirming the start of the community challenge. Don't /startchallenge again unless absolutely necessary :)
+            // Confirm the challenge has been started
             await interaction.editReply({ content: 'Challenge has been started successfully!' });
         } catch (error) {
             console.error('Error starting the challenge:', error);
