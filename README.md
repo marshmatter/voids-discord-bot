@@ -1,7 +1,7 @@
 
 # Dystopika Bot
 
-This bot was made to handle contest submissions and small moderation efforts for the Dydtopika game server.
+This bot was made to handle contest submissions and small moderation efforts for the [Dystopika game Discord server](https://discord.gg/RKDuYazhKT).
 
 ## Authors
 
