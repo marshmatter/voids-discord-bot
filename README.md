@@ -32,7 +32,7 @@ This will clear all warnings for a user just in case a warning has been sent by 
 
 /startchallenge
 
-This will start the Challenge for the month in a new forum post. This must be clicked in order for submissions to be put towards the correct month.
+This will start the Challenge for the month in a new forum post. It will let you put a theme, description, and image. This must be clicked in order for submissions to be put towards the correct month.
 
 /stopchallenge
 
