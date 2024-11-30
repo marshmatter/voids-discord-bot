@@ -16,12 +16,12 @@ module.exports = {
 
         try {
             const [results] = await db.execute('SELECT theme FROM challenges WHERE active = 1 LIMIT 1');
-            const theme = results.length > 0 ? results[0].theme : 'No active weekly challenge at the moment.';
+            const theme = results.length > 0 ? results[0].theme : 'No active community challenge at the moment.';
 
             const embed = new EmbedBuilder()
                 .setColor(0x1F8B4C)
-                .setTitle('Weekly Community Challenge')
-                .setDescription('Participate in the weekly community challenge and show off your best city!')
+                .setTitle('Community Challenge')
+                .setDescription('Participate in the community challenge and show off your best city!')
                 .addFields(
                     { name: 'Current Theme', value: theme, inline: false },
                     { 
