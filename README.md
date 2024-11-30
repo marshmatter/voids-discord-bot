@@ -56,7 +56,7 @@ This acts the same thing as warn but won’t add any warnings, only notify the u
 
 /submit
 
-This will let users to submit to the bot for the monthly challenge.
+This will let users submit to the bot for the monthly challenge.
 
 /ping
 
