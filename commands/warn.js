@@ -19,13 +19,14 @@ module.exports = {
             option
                 .setName('context')
                 .setDescription('Optional additional context for the warning.')
-                .setRequired(false)), 
+                .setRequired(false)),
 
     async execute(interaction) {
         const targetUser = interaction.options.getUser('user');
         const warningId = interaction.options.getString('warningid');
-        const context = interaction.options.getString('context') || null; // Context is optional when executing the /warn command :D
-        const auditLogChannelId = '1311790814501929032'; // This is here to remind myself to move auditlogChannelId to .env rather than defining it in warn.js like I have no idea what I'm doing... 🙄 (I do this a lot tbh)
+        const context = interaction.options.getString('context') || null; // I forgot to make context optional, this has been resolved :sip:
+
+        const auditLogChannelId = '1311790814501929032'; // Should move to .env in the future
 
         console.log('Target User:', targetUser);
         console.log('Warning ID:', warningId);
@@ -58,7 +59,8 @@ module.exports = {
                 .setTitle('You Have Received a Warning')
                 .addFields(
                     { name: 'Reason', value: description },
-                    context ? { name: 'Additional Information', value: context } : {} // This will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
+                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
+                    ...(context ? [{ name: 'Additional Information', value: context }] : []) 
                 )
                 .setFooter({ text: `Issued by ${interaction.guild.name}` })
                 .setTimestamp();
@@ -78,7 +80,8 @@ module.exports = {
                 .addFields(
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    context ? { name: 'Additional Information', value: context, inline: false } : {} // As stated before, this will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
+                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
+                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : []) 
                 )
                 .setFooter({ text: dmStatus })
                 .setTimestamp();
@@ -93,7 +96,8 @@ module.exports = {
                     { name: 'Warned User', value: targetUser.tag, inline: true },
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    context ? { name: 'Additional Information', value: context, inline: false } : {} // As stated TWICE before..this will only show "Context" or "Additional Information" if it is provided when executing the /warn command ^_^
+                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
+                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : [])
                 )
                 .setFooter({ text: `Warning issued at`, iconURL: interaction.user.displayAvatarURL() })
                 .setTimestamp();
