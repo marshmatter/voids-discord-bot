@@ -1,3 +1,5 @@
+// Similar to /addwarning, this command shouldn't need to be used at all, however it exists for administrative purposes. This may be restricted as well to Admins in the future.
+
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 

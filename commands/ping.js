@@ -8,3 +8,5 @@ module.exports = {
         await interaction.reply('Pong!');
     },
 };
+
+// Debug command to ensure the bot is responsive. I'll leave it here to spam sometimes :)

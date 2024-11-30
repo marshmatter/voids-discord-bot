@@ -1,3 +1,5 @@
+// /addwarning is the command to add a pre-defined warning to the list of warnings that can be issued. This command shouldn't need to be used all that much if we define warnings appropriately. This may be restricted to an "Admin" group.
+
 const { SlashCommandBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
@@ -15,7 +17,7 @@ module.exports = {
         const description = interaction.options.getString('description');
         const moderator = interaction.user;
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID; 
 
         const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
         if (!hasModeratorRole) {

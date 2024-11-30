@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('List all pre-defined warnings with their IDs.'),
 
     async execute(interaction) {
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;  // This requires the Moderator Role being defined in .env
 
         const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
         if (!hasModeratorRole) {
@@ -42,7 +42,7 @@ module.exports = {
                 });
             });
 
-            interaction.reply({ embeds: [embed] });
+            interaction.reply({ embeds: [embed], ephemeral: true });
 
         } catch (error) {
             console.error(error);
