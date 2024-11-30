@@ -60,7 +60,7 @@ This will let users will be able to submit to the bot for the monthly challenge.
 
 /ping
 
-Will send pong (for testing).
+This will send pong (for testing).
 
 /botinfo
 
