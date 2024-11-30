@@ -62,3 +62,6 @@ This will let users will be able to submit to the bot for the monthly challenge.
 
 Will send pong (for testing).
 
+/botinfo
+
+This will allow a user to see information about the bot such as destination and up time.
