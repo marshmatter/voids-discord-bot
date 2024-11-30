@@ -10,12 +10,19 @@ module.exports = {
                 .setName('url')
                 .setDescription('The URL of your submission.')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option
+                .setName('description')
+                .setDescription('A brief description of your submission (optional).')
+                .setRequired(false)
         ),
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
         const submissionUrl = interaction.options.getString('url');
+        const description = interaction.options.getString('description') || 'No description provided.';
         const db = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
@@ -48,16 +55,20 @@ module.exports = {
                 });
             }
 
+            // Insert the submission into the database
             await db.execute(
-                'INSERT INTO submissions (user_id, challenge_id, submission_url) VALUES (?, ?, ?)',
-                [userId, challengeId, submissionUrl]
+                'INSERT INTO submissions (user_id, challenge_id, submission_url, description) VALUES (?, ?, ?, ?)',
+                [userId, challengeId, submissionUrl, description]
             );
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
                 .setTitle('Submission Received')
                 .setDescription('Your entry has been successfully submitted!')
-                .addFields({ name: 'Submission URL', value: submissionUrl })
+                .addFields(
+                    { name: 'Submission URL', value: submissionUrl },
+                    { name: 'Description', value: description }
+                )
                 .setFooter({ text: 'Thank you for participating!' })
                 .setTimestamp();
 
@@ -74,7 +85,8 @@ module.exports = {
                     .addFields(
                         { name: 'User', value: `<@${userId}>`, inline: true },
                         { name: 'Challenge ID', value: challengeId.toString(), inline: true },
-                        { name: 'Submission URL', value: submissionUrl, inline: false }
+                        { name: 'Submission URL', value: submissionUrl, inline: false },
+                        { name: 'Description', value: description, inline: false }
                     )
                     .setFooter({ text: `Submitted by ${interaction.user.tag}` })
                     .setTimestamp();

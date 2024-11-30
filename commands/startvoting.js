@@ -46,14 +46,14 @@ module.exports = {
             const votingAnnouncementEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
                 .setTitle('Voting for the Community Challenge has Started!')
-                .setDescription(`The voting process for this challenge submissions is now live! 🗳️\n\n**The theme of this challenge is:** ${theme}`)
+                .setDescription(`The voting process for this challenge's submissions is now live! 🗳️\n\n**The theme of this challenge is:** ${theme}`)
                 .setFooter({ text: 'Vote for your favorite submissions!' })
                 .setTimestamp();
 
             await challengeChannel.send({ embeds: [votingAnnouncementEmbed] });
 
             const [submissions] = await db.execute(`
-                SELECT id, submission_url, user_id 
+                SELECT id, submission_url, description, user_id 
                 FROM submissions 
                 WHERE challenge_id = ?`, [activeChallenge[0].id]);
 
@@ -69,7 +69,7 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setColor(0x3498DB)
                     .setTitle('Community Challenge Submission')
-                    .setDescription(`Submitted by: **${user.tag}**`)
+                    .setDescription(`Submitted by: **${user.tag}**\n\n**Description:** ${submission.description || 'No description provided.'}`)
                     .setImage(submission.submission_url)
                     .setFooter({ text: `Submission ID: ${submission.id}` })
                     .setTimestamp();
