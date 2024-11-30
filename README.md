@@ -44,7 +44,7 @@ This will show the current challenges theme and how to enter it.
 
 /startvoting
 
-This will start Voting Period.
+This will start the Voting Period.
 
 /stopvoting
 
@@ -56,7 +56,7 @@ This acts the same thing as warn but won’t add any warnings, only notify the u
 
 /submit
 
-This will let users will be able to submit to the bot for the monthly challenge.
+This will let users to submit to the bot for the monthly challenge.
 
 /ping
 
