@@ -65,3 +65,7 @@ This will send pong (for testing).
 /botinfo
 
 This will allow a user to see information about the bot such as destination and up time.
+
+/deletesubmission
+
+This will will delete a submission from the database if one is found to have violated a rule.
