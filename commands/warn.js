@@ -24,8 +24,8 @@ module.exports = {
     async execute(interaction) {
         const targetUser = interaction.options.getUser('user');
         const warningId = interaction.options.getString('warningid');
-        const context = interaction.options.getString('context') || null; // I forgot to make context optional, this has been resolved :sip:
-
+        const context = interaction.options.getString('context') || null;
+        const moderatorId = interaction.user.id; // Get the moderator's ID
         const auditLogChannelId = process.env.AUDIT_CHANNEL_ID;
 
         console.log('Target User:', targetUser);
@@ -52,17 +52,20 @@ module.exports = {
 
             const description = warningDetails[0].description;
 
-            await db.execute('INSERT INTO warnings (user_id, warning_id, description, context) VALUES (?, ?, ?, ?)', [targetUser.id, warningId, description, context]);
+            // Include moderator_id in the query
+            await db.execute(
+                'INSERT INTO warnings (user_id, warning_id, description, context, moderator_id) VALUES (?, ?, ?, ?, ?)',
+                [targetUser.id, warningId, description, context, moderatorId]
+            );
 
             const dmEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle('You Have Received a Warning')
                 .addFields(
                     { name: 'Reason', value: description },
-                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
-                    ...(context ? [{ name: 'Additional Information', value: context }] : []) 
+                    ...(context ? [{ name: 'Additional Information', value: context }] : [])
                 )
-                .setFooter({ text: `Issued by ${interaction.guild.name}` })
+                .setFooter({ text: `Confused? Type /new in our Server to open a ticket with our Team.` })
                 .setTimestamp();
 
             let dmStatus = 'Warning sent via DM.';
@@ -80,8 +83,7 @@ module.exports = {
                 .addFields(
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
-                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : []) 
+                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : [])
                 )
                 .setFooter({ text: dmStatus })
                 .setTimestamp();
@@ -96,7 +98,6 @@ module.exports = {
                     { name: 'Warned User', value: targetUser.tag, inline: true },
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    // Only add the 'Additional Information' field if context is provided. I made an oopsy and it took me forever to figure this out.
                     ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : [])
                 )
                 .setFooter({ text: `Warning issued at`, iconURL: interaction.user.displayAvatarURL() })
@@ -108,7 +109,7 @@ module.exports = {
             }
         } catch (error) {
             console.error(error);
-            interaction.reply({ content: 'An error occurred while issuing the warning.', ephemeral: true });
+            await interaction.reply({ content: 'An error occurred while issuing the warning.', ephemeral: true });
         } finally {
             await db.end();
         }
