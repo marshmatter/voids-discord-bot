@@ -62,7 +62,7 @@ module.exports = {
                 .setDescription(`A new community challenge has begun! Share your best submissions!`)
                 .addFields(
                     { name: 'Theme', value: theme },
-                    { name: 'How to Participate', value: '1. Submit your entry in this thread.\n2. Use the `/submit` command to enter officially.' }
+                    { name: 'How to Participate', value: '1. Type /submit in any channel.\n2. Upload your Image.\n3. Optionally, you may add a description of your image, should you wish to provide lore or a backstory!. ' }
                 )
                 .setFooter({ text: 'Good luck! We can’t wait to see your submissions!' })
                 .setTimestamp();

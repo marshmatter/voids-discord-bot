@@ -26,9 +26,9 @@ module.exports = {
                     { name: 'Current Theme', value: theme, inline: false },
                     { 
                         name: 'How to Enter', 
-                        value: '1. Upload your screenshot to Imgur.\n' +
-                               '2. Copy the image link.\n' +
-                               '3. Use the `/submit [url]` command to submit your entry.', 
+                        value: '1. Type /submit in any channel.\n' +
+                                '2. Upload your Image\n' +
+                                '3. Optionally, you may add a description of your image, should you wish to provide lore or a backstory!.', 
                         inline: false 
                     }
                 )
