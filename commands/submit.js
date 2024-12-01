@@ -66,11 +66,14 @@ module.exports = {
             const auditChannelId = process.env.AUDIT_CHANNEL_ID;
             const auditChannel = await interaction.client.channels.fetch(auditChannelId);
 
+            let submissionId;
+
             if (existingSubmission.length > 0) {
+                submissionId = existingSubmission[0].id;
                 if (existingSubmission[0].submitted === 0) {
                     await db.execute(
-                        'UPDATE submissions SET submission_url = ?, description = ? WHERE user_id = ? AND challenge_id = ?',
-                        [image.url, description, userId, challengeId]
+                        'UPDATE submissions SET submission_url = ?, description = ? WHERE id = ?',
+                        [image.url, description, submissionId]
                     );
 
                     const embed = new EmbedBuilder()
@@ -95,6 +98,7 @@ module.exports = {
                             .addFields(
                                 { name: 'User', value: `<@${userId}>` },
                                 { name: 'Challenge ID', value: challengeId.toString() },
+                                { name: 'Submission ID', value: submissionId.toString() },
                                 { name: 'New Submission Description', value: description },
                                 { name: 'New Image URL', value: image.url }
                             )
@@ -109,10 +113,12 @@ module.exports = {
                 }
             }
 
-            await db.execute(
+            const [result] = await db.execute(
                 'INSERT INTO submissions (user_id, challenge_id, submission_url, description, submitted) VALUES (?, ?, ?, ?, 0)',
                 [userId, challengeId, image.url, description]
             );
+
+            submissionId = result.insertId;
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
@@ -136,6 +142,7 @@ module.exports = {
                     .addFields(
                         { name: 'User', value: `<@${userId}>` },
                         { name: 'Challenge ID', value: challengeId.toString() },
+                        { name: 'Submission ID', value: submissionId.toString() },
                         { name: 'Submission Description', value: description },
                         { name: 'Image URL', value: image.url }
                     )
