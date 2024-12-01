@@ -1,7 +1,7 @@
 
 # Dystopika Bot
 
-This bot was made to handle contest submissions and small moderation efforts for the Dydtopika game server.
+This bot was made to handle contest submissions and small moderation efforts for the [Dystopika game Discord server](https://discord.gg/RKDuYazhKT).
 
 ## Authors
 
@@ -32,7 +32,7 @@ This will clear all warnings for a user just in case a warning has been sent by 
 
 /startchallenge
 
-This will start the Challenge for the month. This must be clicked in order for submissions to be put towards the correct month.
+This will start the Challenge for the month in a new forum post. It will let you put a theme, description, and image. This must be clicked in order for submissions to be put towards the correct month.
 
 /stopchallenge
 
@@ -44,7 +44,7 @@ This will show the current challenges theme and how to enter it.
 
 /startvoting
 
-This will start Voting Period.
+This will start the Voting Period.
 
 /stopvoting
 
@@ -56,9 +56,16 @@ This acts the same thing as warn but won’t add any warnings, only notify the u
 
 /submit
 
-This will let users will be able to submit to the bot for the monthly challenge.
+This will let users submit to the bot for the monthly challenge.
 
 /ping
 
-Will send pong (for testing).
+This will send pong (for testing).
 
+/botinfo
+
+This will allow a user to see information about the bot such as destination and up time.
+
+/deletesubmission
+
+This will will delete a submission from the database if one is found to have violated a rule.
