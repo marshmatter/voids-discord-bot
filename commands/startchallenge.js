@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
@@ -8,6 +8,11 @@ module.exports = {
         .addStringOption(option =>
             option.setName('theme')
                 .setDescription('The theme for this community challenge.')
+                .setRequired(false)
+        )
+        .addAttachmentOption(option =>
+            option.setName('image')
+                .setDescription('Optional image to display in the challenge thread.')
                 .setRequired(false)
         ),
     async execute(interaction) {
@@ -23,6 +28,8 @@ module.exports = {
         }
 
         const theme = interaction.options.getString('theme') || 'The possibilities are endless!';
+        const image = interaction.options.getAttachment('image');
+
         const db = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
@@ -32,10 +39,12 @@ module.exports = {
 
         try {
             const challengeForum = await interaction.client.channels.fetch(CHALLENGE_FORUM_ID);
+
             const thread = await challengeForum.threads.create({
                 name: `Challenge: ${theme}`,
                 message: {
                     content: `<@&${CONTEST_ROLE_ID}> A new community challenge has begun! Share your best submissions here!`,
+                    files: image ? [image.url] : [], // Attach the image if provided
                 },
                 autoArchiveDuration: 1440,
                 reason: 'Community Challenge Start',
