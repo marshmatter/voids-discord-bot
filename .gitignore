@@ -1,4 +1,5 @@
 .env
+.env2
 package-lock.json
 node_modules
 delete-commands.js 
