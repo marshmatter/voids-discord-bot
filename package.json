@@ -1,28 +1,21 @@
 {
-  "name": "voids-discord-bot",
+  "name": "cipher-bot",
   "version": "1.0.0",
+  "description": "A Moderation & Contest Bot for the Dystopika / Voids Within Discord server.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "deploy": "node deploy-commands.js"
+    "deploy": "node deploy-commands.js",
+    "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["discord", "bot", "community", "moderation"],
+  "author": "Brant",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@discordjs/rest": "^2.4.0",
     "discord-api-types": "^0.37.109",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.5",
     "mysql2": "^3.11.5"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.15.0",
-    "eslint": "^9.15.0",
-    "globals": "^15.12.0",
-    "nodemon": "^3.1.7"
   }
 }
