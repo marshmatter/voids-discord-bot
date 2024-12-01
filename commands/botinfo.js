@@ -14,7 +14,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(0x7700ff)
             .setTitle(`Hi, I'm ${bot.username}!`)
-            .setThumbnail('https://i.imgur.com/vsLDxkK.png')
+            .setThumbnail('https://i.imgur.com/Ja8wUCa.png')
             .setDescription(
                 "I'm here to help the Voids Within team with some moderation as well as the community challenges!"
             )
