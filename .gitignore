@@ -1,5 +1,6 @@
 .env
-node_modules
-config.json
+.env2
 package-lock.json
-nodemon.json
+node_modules
+delete-commands.js 
+config
