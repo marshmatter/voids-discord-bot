@@ -60,15 +60,16 @@ module.exports = {
             for (const submission of submissions) {
                 try {
                     const submissionMessage = await forumThread.messages.fetch(submission.message_id);
-                    const thumbsUpReaction = submissionMessage.reactions.cache.get('👍');
-                    const thumbsUpCount = thumbsUpReaction ? thumbsUpReaction.count - 1 : 0; // Exclude bot's reaction
-                    submissionVotes.push({ submission, thumbsUpCount });
+                    const customEmoji = interaction.guild.emojis.cache.find(emoji => emoji.name === 'dystopika'); // dystopika emoji
+                    const customEmojiReaction = submissionMessage.reactions.cache.get(customEmoji?.id); 
+                    const voteCount = customEmojiReaction ? customEmojiReaction.count - 1 : 0; // subtract 1 vote due to bot reaction
+                    submissionVotes.push({ submission, voteCount });
                 } catch (error) {
                     console.error(`Failed to fetch message or reactions for submission ${submission.id}:`, error);
                 }
             }
 
-            submissionVotes.sort((a, b) => b.thumbsUpCount - a.thumbsUpCount);
+            submissionVotes.sort((a, b) => b.voteCount - a.voteCount);
 
             const votingClosedEmbed = new EmbedBuilder()
                 .setColor(0xe74c3c)
@@ -76,29 +77,32 @@ module.exports = {
                 .setDescription('The top submissions will be announced soon!')
                 .setTimestamp();
 
-            const resultsEmbed = new EmbedBuilder()
-                .setColor(0x2ecc71)
-                .setTitle(`Top Submissions of the "${challengeTheme}" Challenge`)
-                .setDescription('Here are the top submissions based on votes:')
-                .setTimestamp();
-
-            let rank = 1;
-            for (const { submission, thumbsUpCount } of submissionVotes.slice(0, 3)) {
-                const user = await interaction.client.users.fetch(submission.user_id);
-                resultsEmbed.addFields({
-                    name: `Rank ${rank}: ${user.username}`,
-                    value: `Votes: ${thumbsUpCount}\nDescription: ${submission.description || 'No description provided.'}`,
-                });
-                rank++;
-            }
-
             await forumThread.send({ embeds: [votingClosedEmbed] });
 
-            for (const channelId of MODERATOR_CHANNEL_IDS) {
-                const modChannel = await interaction.client.channels.fetch(channelId);
-                if (modChannel) {
-                    await modChannel.send({ embeds: [resultsEmbed] });
+            let rank = 1;
+            for (const { submission, voteCount } of submissionVotes.slice(0, 3)) {
+                const user = await interaction.client.users.fetch(submission.user_id);
+                const submissionImage = submission.submission_url; 
+                const imageAttachment = submissionImage ? { url: submissionImage } : {}; 
+
+                const resultEmbed = new EmbedBuilder()
+                    .setColor(0x2ecc71)
+                    .setTitle(`Top Submission #${rank} for the "${challengeTheme}" Challenge`)
+                    .setDescription(`Rank ${rank}: ${user.username}\nVotes: ${voteCount}\nDescription: ${submission.description || 'No description provided.'}`)
+                    .setTimestamp();
+
+                if (imageAttachment.url) {
+                    resultEmbed.setImage(imageAttachment.url);
                 }
+
+                for (const channelId of MODERATOR_CHANNEL_IDS) {
+                    const modChannel = await interaction.client.channels.fetch(channelId);
+                    if (modChannel) {
+                        await modChannel.send({ embeds: [resultEmbed] });
+                    }
+                }
+
+                rank++;
             }
 
             await db.execute('UPDATE challenges SET state = "Closed", active = 0 WHERE id = ?', [challengeId]);

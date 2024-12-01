@@ -32,7 +32,6 @@ module.exports = {
 
             const challengeId = activeChallenge[0].id;
 
-
             const [challengeData] = await db.execute('SELECT thread_id FROM challenges WHERE id = ?', [challengeId]);
 
             if (challengeData.length === 0 || !challengeData[0].thread_id) {
@@ -76,7 +75,13 @@ module.exports = {
 
                 const message = await challengeChannel.send({ embeds: [submissionEmbed] });
 
-                await message.react('👍'); // Allow users to vote
+                const customEmoji = interaction.guild.emojis.cache.find(emoji => emoji.name === 'dystopika'); 
+                if (customEmoji) {
+                    await message.react(customEmoji); 
+                } else {
+                    console.error('Custom emoji not found.');
+                    await message.react('👍');
+                }
 
                 await db.execute('UPDATE submissions SET thread_id = ?, message_id = ?, vote_count = 0 WHERE id = ?', [forumThreadId, message.id, submission.id]);
             }
