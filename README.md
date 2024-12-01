@@ -26,9 +26,9 @@ This will add a warning to the list assigning it a new warning ID. This should b
 
 This will delete an added warning ID.
 
-/removewarnings
+/clearwarnings
 
-This will remove all warnings for a user just in case a warning has been sent by accident.
+This will clear all warnings for a user just in case a warning has been sent by accident.
 
 /startchallenge
 
