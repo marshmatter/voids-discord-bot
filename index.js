@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
+const { version } = require('./package.json');
 
 const client = new Client({
     intents: [
@@ -70,6 +71,8 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    console.log(`Cipher Bot - Version ${version}`);
+    console.log('successfully finished startup');
 
     client.user.setPresence({
         activities: [{
