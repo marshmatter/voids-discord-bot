@@ -26,7 +26,7 @@ module.exports = {
         const warningId = interaction.options.getString('warningid');
         const context = interaction.options.getString('context') || null; // I forgot to make context optional, this has been resolved :sip:
 
-        const auditLogChannelId = '1311790814501929032'; // Should move to .env in the future
+        const auditLogChannelId = process.env.AUDIT_CHANNEL_ID;
 
         console.log('Target User:', targetUser);
         console.log('Warning ID:', warningId);
