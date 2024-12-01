@@ -12,10 +12,11 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const AUDIT_CHANNEL_ID = process.env.AUDIT_CHANNEL_ID;
 
-        if (!interaction.member.roles.cache.has(MODERATOR_ROLE_ID)) {
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
+        if (!hasModeratorRole) {
             return interaction.reply({
                 content: 'You do not have permission to use this command.',
                 ephemeral: true,
@@ -31,6 +32,7 @@ module.exports = {
         });
 
         try {
+            // Delete all warnings for the target user
             await db.execute('DELETE FROM warnings WHERE user_id = ?', [targetUser.id]);
 
             await interaction.reply({

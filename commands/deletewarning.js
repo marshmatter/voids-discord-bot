@@ -1,5 +1,3 @@
-// Similar to /addwarning, this command shouldn't need to be used at all, however it exists for administrative purposes. This may be restricted as well to Admins in the future.
-
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
@@ -17,9 +15,9 @@ module.exports = {
         const warningId = interaction.options.getInteger('warningid');
         const moderator = interaction.user;
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.reply({ content: 'You do not have permission to delete warnings.', ephemeral: true });
         }

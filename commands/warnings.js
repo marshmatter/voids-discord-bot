@@ -15,9 +15,9 @@ module.exports = {
         const targetUser = interaction.options.getUser('user');
         const moderator = interaction.user;
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID; // Making sure that the individual running the /warnings command is a Moderator.
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.reply({ content: 'You do not have permission to view warnings.', ephemeral: true });
         }

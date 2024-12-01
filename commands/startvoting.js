@@ -9,10 +9,10 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const CONTEST_ROLE_ID = process.env.CONTEST_ROLE_ID;
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.editReply({ content: 'You do not have permission to use this command.' });
         }
@@ -31,6 +31,7 @@ module.exports = {
             }
 
             const challengeId = activeChallenge[0].id;
+
 
             const [challengeData] = await db.execute('SELECT thread_id FROM challenges WHERE id = ?', [challengeId]);
 
@@ -75,13 +76,12 @@ module.exports = {
 
                 const message = await challengeChannel.send({ embeds: [submissionEmbed] });
 
-                await message.react('👍');
+                await message.react('👍'); // Allow users to vote
 
                 await db.execute('UPDATE submissions SET thread_id = ?, message_id = ?, vote_count = 0 WHERE id = ?', [forumThreadId, message.id, submission.id]);
             }
 
             await db.execute('UPDATE submissions SET submitted = 1 WHERE challenge_id = ?', [challengeId]);
-
             await db.execute('UPDATE challenges SET state = "Voting" WHERE id = ?', [challengeId]);
 
             await interaction.editReply({ content: 'Voting has been started! Submissions are now posted for voting.' });

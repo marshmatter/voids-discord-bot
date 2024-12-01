@@ -15,14 +15,15 @@ module.exports = {
                 .setDescription('Optional image to display in the challenge thread.')
                 .setRequired(false)
         ),
+
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const CONTEST_ROLE_ID = process.env.CONTEST_ROLE_ID;
         const CHALLENGE_FORUM_ID = process.env.FORUM_CHALLENGE_ID;
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.editReply({ content: 'You do not have permission to use this command.' });
         }
@@ -46,7 +47,7 @@ module.exports = {
                     content: `<@&${CONTEST_ROLE_ID}> A new community challenge has begun! Share your best submissions here!`,
                     files: image ? [image.url] : [], // Attach the image if provided
                 },
-                autoArchiveDuration: 1440,
+                autoArchiveDuration: 1440, // this cannot be increased, 24 hours is the max.
                 reason: 'Community Challenge Start',
             });
 

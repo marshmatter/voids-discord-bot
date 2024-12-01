@@ -1,5 +1,3 @@
-// /addwarning is the command to add a pre-defined warning to the list of warnings that can be issued. This command shouldn't need to be used all that much if we define warnings appropriately. This may be restricted to an "Admin" group.
-
 const { SlashCommandBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
@@ -17,9 +15,9 @@ module.exports = {
         const description = interaction.options.getString('description');
         const moderator = interaction.user;
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID; 
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.reply({ content: 'You do not have permission to add a warning.', ephemeral: true });
         }
@@ -39,9 +37,9 @@ module.exports = {
 
             if (result.affectedRows > 0) {
                 const warningId = result.insertId;
-                interaction.reply({ 
-                    content: `Successfully added the new warning. The warning ID is **${warningId}**.`, 
-                    ephemeral: true 
+                interaction.reply({
+                    content: `Successfully added the new warning. The warning ID is **${warningId}**.`,
+                    ephemeral: true
                 });
             } else {
                 interaction.reply({ content: 'Failed to add the new warning. Please try again.', ephemeral: true });

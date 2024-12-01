@@ -36,6 +36,13 @@ module.exports = {
             return interaction.reply({ content: 'You must provide a valid warning ID.', ephemeral: true });
         }
 
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
+
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
+        if (!hasModeratorRole) {
+            return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+        }
+
         const db = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
@@ -63,7 +70,7 @@ module.exports = {
                 .setTitle('You Have Received a Warning')
                 .addFields(
                     { name: 'Reason', value: description },
-                    ...(context ? [{ name: 'Additional Information', value: context }] : [])
+                    ...(context ? [{ name: 'Additional Information', value: context }] : []),
                 )
                 .setFooter({ text: `Confused? Type /new in our Server to open a ticket with our Team.` })
                 .setTimestamp();
@@ -83,7 +90,7 @@ module.exports = {
                 .addFields(
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : [])
+                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : []),
                 )
                 .setFooter({ text: dmStatus })
                 .setTimestamp();
@@ -98,7 +105,7 @@ module.exports = {
                     { name: 'Warned User', value: targetUser.tag, inline: true },
                     { name: 'Warning ID', value: warningId, inline: true },
                     { name: 'Reason', value: description, inline: false },
-                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : [])
+                    ...(context ? [{ name: 'Additional Information', value: context, inline: false }] : []),
                 )
                 .setFooter({ text: `Warning issued at`, iconURL: interaction.user.displayAvatarURL() })
                 .setTimestamp();

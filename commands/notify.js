@@ -14,16 +14,16 @@ module.exports = {
                 .setRequired(true)),
 
     async execute(interaction) {
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.reply({ content: 'You do not have the required role to use this command.', ephemeral: true });
         }
 
         const targetUser = interaction.options.getUser('user');
         const message = interaction.options.getString('message');
-        const auditLogChannelId = process.env.AUDIT_CHANNEL_ID; 
+        const auditLogChannelId = process.env.AUDIT_CHANNEL_ID;
 
         try {
             const embed = new EmbedBuilder()

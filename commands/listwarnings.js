@@ -7,9 +7,9 @@ module.exports = {
         .setDescription('List all pre-defined warnings with their IDs.'),
 
     async execute(interaction) {
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;  // This requires the Moderator Role being defined in .env
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.reply({ content: 'You do not have permission to list the warnings.', ephemeral: true });
         }

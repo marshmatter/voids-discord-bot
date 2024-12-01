@@ -16,11 +16,11 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const submissionId = interaction.options.getString('submissionid');
         const notifyUser = interaction.options.getBoolean('notifyuser') || false;
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.editReply({ content: 'You do not have permission to use this command.' });
         }
@@ -62,7 +62,6 @@ module.exports = {
                 }
             }
 
-            // Log the deletion in the audit log channel
             const auditLogChannelId = process.env.AUDIT_CHANNEL_ID;
             const auditLogEmbed = new EmbedBuilder()
                 .setColor(0xFFA500)
@@ -81,7 +80,6 @@ module.exports = {
                 await auditLogChannel.send({ embeds: [auditLogEmbed] });
             }
 
-            // Notify the moderator
             await interaction.editReply({ content: `Submission ${submissionId} has been deleted successfully.` });
         } catch (error) {
             console.error('Error deleting submission:', error);

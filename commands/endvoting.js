@@ -9,10 +9,10 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+        const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const MODERATOR_CHANNEL_IDS = process.env.MODERATOR_CHANNEL_IDS.split(',');
 
-        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
             return interaction.editReply({ content: 'You do not have permission to use this command.' });
         }
@@ -93,6 +93,7 @@ module.exports = {
             }
 
             await forumThread.send({ embeds: [votingClosedEmbed] });
+
             for (const channelId of MODERATOR_CHANNEL_IDS) {
                 const modChannel = await interaction.client.channels.fetch(channelId);
                 if (modChannel) {
