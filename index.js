@@ -8,6 +8,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions,
     ],
     partials: ['CHANNEL'],
 });
@@ -70,11 +71,10 @@ client.on('messageCreate', async (message) => {
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
-    // Set the bot's status to "Now Playing"
     client.user.setPresence({
         activities: [{
-            name: 'Dystopika', // You can replace this with whatever game or activity you want the bot to "play"
-            type: 0, // Activity Type 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching | using "Streaming" will set their icon to purple!
+            name: 'Dystopika', 
+            type: 0, // Activity Type 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching | using "Streaming" will set their icon to purple.
         }],
         status: 'online',
     });
