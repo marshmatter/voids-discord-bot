@@ -37,7 +37,7 @@ module.exports = {
                 message: {
                     content: `<@&${CONTEST_ROLE_ID}> A new community challenge has begun! Share your best submissions here!`,
                 },
-                autoArchiveDuration: 1440000,
+                autoArchiveDuration: 1440,
                 reason: 'Community Challenge Start',
             });
 
