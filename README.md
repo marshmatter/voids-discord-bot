@@ -34,17 +34,13 @@ This will clear all warnings for a user just in case a warning has been sent by 
 
 This will start the Challenge for the month in a new forum post. It will let you put a theme, description, and image. This must be clicked in order for submissions to be put towards the correct month.
 
-/stopchallenge
-
-This will end the Challenge. This must be clicked in order for submissions to be ready for voting.
-
 /challenge
 
 This will show the current challenges theme and how to enter it.
 
 /startvoting
 
-This will start the Voting Period.
+This will start the Voting Period adn end the current challenge.
 
 /stopvoting
 
