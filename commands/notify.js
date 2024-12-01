@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,12 +11,19 @@ module.exports = {
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The message to send.')
-                .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages), // Currently this will allow any group with the ManageMessages permission applied. This will be changed later to the moderator group defined in .env
+                .setRequired(true)),
+
     async execute(interaction) {
+        const MODERATOR_ROLE_ID = process.env.MODERATOR_ROLE_ID;
+
+        const hasModeratorRole = interaction.member.roles.cache.has(MODERATOR_ROLE_ID);
+        if (!hasModeratorRole) {
+            return interaction.reply({ content: 'You do not have the required role to use this command.', ephemeral: true });
+        }
+
         const targetUser = interaction.options.getUser('user');
         const message = interaction.options.getString('message');
-        const auditLogChannelId = process.env.AUDIT_CHANNEL_ID; // Getting the audit channel ID from .env
+        const auditLogChannelId = process.env.AUDIT_CHANNEL_ID; 
 
         try {
             const embed = new EmbedBuilder()
