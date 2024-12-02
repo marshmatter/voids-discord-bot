@@ -45,17 +45,34 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.on('messageCreate', async (message) => {
-    // making sure the bot doesn't go into a loop talking to itself, that'd be wild.
-    if (message.channel.type === 1 && !message.author.bot) {
+    // Cipher is crazy but not crazy enough for us to want it to respond to itself in DMs. :)
+    if (message.author.bot) return;
+
+    // Checking to see if the message is a Direct Message.
+    if (message.channel.type === 1) {
         const embed = new EmbedBuilder()
             .setTitle('User Response')
             .setColor('#2ecc71')
-            .setDescription(`${message.content}`)
             .setFooter({
                 text: `${message.author.tag} | ${new Date().toLocaleString()}`,
                 iconURL: message.author.displayAvatarURL({ dynamic: true }),
-            });
+            })
+            .setTimestamp();
 
+        if (message.content.trim()) {
+            embed.setDescription(message.content);
+        } else {
+            embed.setDescription('No text provided.');
+        }
+
+        if (message.attachments.size > 0) {
+            const imageAttachment = message.attachments.find(att => att.contentType && att.contentType.startsWith('image/'));
+            if (imageAttachment) {
+                embed.setImage(imageAttachment.url);
+            }
+        }
+
+        // Send the embed mod channel
         for (const channelId of MODERATOR_CHANNEL_IDS) {
             try {
                 const moderatorChannel = await client.channels.fetch(channelId.trim());
@@ -68,6 +85,7 @@ client.on('messageCreate', async (message) => {
         }
     }
 });
+
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
