@@ -14,7 +14,7 @@ module.exports = {
         .addStringOption(option =>
             option
                 .setName('description')
-                .setDescription('A short description of your submission.')
+                .setDescription('The lore/backstory of your image, if you have one.')
                 .setRequired(false)
         ),
 
@@ -29,14 +29,14 @@ module.exports = {
 
             if (!image || !image.contentType) {
                 return interaction.editReply({
-                    content: 'You must attach a valid image file (PNG, JPEG, JPG, or GIF).',
+                    content: 'You must attach a valid image file (PNG, JPEG, or JPG).',
                 });
             }
 
-            const allowedFileTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+            const allowedFileTypes = ['image/png', 'image/jpeg', 'image/jpg'];
             if (!allowedFileTypes.includes(image.contentType)) {
                 return interaction.editReply({
-                    content: 'Invalid file type. Please upload an image file (PNG, JPEG, JPG, or GIF).',
+                    content: 'Invalid file type. Please upload an image file (PNG, JPEG, or JPG).',
                 });
             }
 
@@ -93,7 +93,6 @@ module.exports = {
 
                     await forumThread.send(`<@${userId}> has updated their submission to this challenge!`);
 
-                    // Log update to the audit channel with additional info
                     const auditEmbed = new EmbedBuilder()
                         .setColor(0x3498db)
                         .setTitle('🔄 Submission Updated')
@@ -144,7 +143,6 @@ module.exports = {
 
             await forumThread.send(`<@${userId}> has entered their submission to this challenge!`);
 
-            // Log submission to the audit channel with additional info
             const auditEmbed = new EmbedBuilder()
                 .setColor(0x2ecc71)
                 .setTitle('✅ New Submission')
