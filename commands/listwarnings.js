@@ -28,21 +28,39 @@ module.exports = {
                 return interaction.reply({ content: 'No predefined warnings found in the database.', ephemeral: true });
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(0x2ecc71)
-                .setTitle('Predefined Warnings')
-                .setDescription('Here is a list of all predefined warnings available for use.')
-                .setTimestamp();
+            // Paginate warnings
+            const embeds = [];
+            const warningsPerPage = 25;
 
-            warnings.forEach(warning => {
-                embed.addFields({
-                    name: `Warning ID: ${warning.id}`,
-                    value: warning.description,
-                    inline: false
+            for (let i = 0; i < warnings.length; i += warningsPerPage) {
+                const slice = warnings.slice(i, i + warningsPerPage);
+
+                const embed = new EmbedBuilder()
+                    .setColor(0x2ecc71)
+                    .setTitle('Predefined Warnings')
+                    .setDescription(`Here is a list of all predefined warnings available for use. Page ${Math.ceil(i / warningsPerPage) + 1}`)
+                    .setTimestamp();
+
+                slice.forEach(warning => {
+                    const truncatedDescription = warning.description.length > 1024
+                        ? `${warning.description.substring(0, 1021)}...`
+                        : warning.description;
+
+                    embed.addFields({
+                        name: `Warning ID: ${warning.id}`,
+                        value: truncatedDescription,
+                        inline: false
+                    });
                 });
-            });
 
-            interaction.reply({ embeds: [embed], ephemeral: true });
+                embeds.push(embed);
+            }
+
+            for (const embed of embeds) {
+                await interaction.channel.send({ embeds: [embed] });
+            }
+
+            interaction.reply({ content: 'Warnings have been listed.', ephemeral: true });
 
         } catch (error) {
             console.error(error);
