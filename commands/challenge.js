@@ -28,7 +28,7 @@ module.exports = {
                         name: 'How to Enter', 
                         value: '1. Type /submit in any channel.\n' +
                                 '2. Upload your Image\n' +
-                                '3. Optionally, you may add a description of your image, should you wish to provide lore or a backstory!.', 
+                                '3. Optionally, add the lore/backstory via the "description"! ', 
                         inline: false 
                     }
                 )
