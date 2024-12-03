@@ -62,6 +62,10 @@ This will send pong (for testing).
 
 This will allow a user to see information about the bot such as destination and up time.
 
+/challengealerts
+
+This will subscribe you to the Challenge Alerts role to recieve notifications about when a challenge has started.
+
 /deletesubmission
 
 This will will delete a submission from the database if one is found to have violated a rule.
