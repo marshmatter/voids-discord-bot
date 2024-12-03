@@ -58,7 +58,6 @@ module.exports = {
             }
 
             const challengeId = activeChallenge[0].id;
-           // const challengeName = activeChallenge[0].name;
             const threadId = activeChallenge[0].thread_id;
             const forumThread = await interaction.client.channels.fetch(threadId);
 
@@ -98,15 +97,11 @@ module.exports = {
                         .setTitle('🔄 Submission Updated')
                         .setDescription(`Submission updated by ${username} (${userId})`)
                         .addFields(
-                           // { name: 'Challenge Name', value: challengeName },
                             { name: 'Submission Description', value: description },
                             { name: 'Challenge ID', value: challengeId.toString() },
                             { name: 'Submission ID', value: submissionId.toString() }
                         )
                         .setImage(image.url)
-                        .addFields(
-                            { name: 'Important', value: 'If this submission does not follow the Challenge Guidelines, is in breach of our server rules, or breaks Discord ToS, please make use of the `/deletesubmission` command.' }
-                        )
                         .setTimestamp();
 
                     const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
@@ -141,22 +136,23 @@ module.exports = {
 
             await interaction.editReply({ embeds: [embed] });
 
-            await forumThread.send(`<@${userId}> has entered their submission to this challenge!`);
+            const message = await forumThread.send(`<@${userId}> has entered their submission to this challenge!`);
+            
+            await db.execute(
+                'UPDATE submissions SET message_id = ? WHERE id = ?',
+                [message.id, submissionId]
+            );
 
             const auditEmbed = new EmbedBuilder()
                 .setColor(0x2ecc71)
                 .setTitle('✅ New Submission')
                 .setDescription(`New submission by ${username} (${userId})`)
                 .addFields(
-                  //  { name: 'Challenge Name', value: challengeName },
                     { name: 'Submission Description', value: description },
                     { name: 'Challenge ID', value: challengeId.toString() },
                     { name: 'Submission ID', value: submissionId.toString() }
                 )
                 .setImage(image.url)
-                .addFields(
-                    { name: 'Important', value: 'If this submission does not follow the Challenge Guidelines, is in breach of our server rules, or breaks Discord ToS, please make use of the `/deletesubmission` command.' }
-                )
                 .setTimestamp();
 
             const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
