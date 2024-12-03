@@ -85,9 +85,9 @@ module.exports = {
             });
 
             await db.execute(
-                'INSERT INTO challenges (theme, description, submissions_close, voting_begins, voting_ends, thread_id, state) VALUES (?, ?, ?, ?, ?, ?, "Submissions")',
+                'INSERT INTO challenges (theme, description, submissions_close, voting_begins, voting_ends, thread_id, state, active) VALUES (?, ?, ?, ?, ?, ?, "Submissions", 1)',
                 [theme, description, submissionsClose, votingBegins, votingEnds, thread.id]
-            );
+            );            
 
             const submissionsCloseDate = new Date(submissionsClose + ' UTC');
             const votingBeginsDate = new Date(votingBegins + ' UTC');
