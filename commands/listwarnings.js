@@ -38,7 +38,7 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setColor(0x2ecc71)
                     .setTitle('Predefined Warnings')
-                    .setDescription(`Here is a list of all predefined warnings available for use. Page ${Math.ceil(i / warningsPerPage) + 1}`)
+                    .setDescription(`Here is a list of all predefined warnings available for use. Page ${Math.ceil(i / warningsPerPage) + 1}/${Math.ceil(warnings.length / warningsPerPage)}`)
                     .setTimestamp();
 
                 slice.forEach(warning => {
@@ -56,11 +56,8 @@ module.exports = {
                 embeds.push(embed);
             }
 
-            for (const embed of embeds) {
-                await interaction.channel.send({ embeds: [embed] });
-            }
-
-            interaction.reply({ content: 'Warnings have been listed.', ephemeral: true });
+            // Send all embeds in a single reply
+            await interaction.reply({ embeds: embeds, ephemeral: true });
 
         } catch (error) {
             console.error(error);

@@ -1,6 +1,52 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
+function scheduleReminders(client, submissionsClose, threadId, challengeId, theme) {
+    const now = new Date().getTime();
+    const closeTime = new Date(submissionsClose + ' UTC').getTime();
+    
+    // Schedule reminders at different intervals
+    const reminders = [
+        { time: 24 * 60 * 60 * 1000, message: '24 hours' },    // 24 hours
+        { time: 6 * 60 * 60 * 1000, message: '6 hours' },      // 6 hours
+        { time: 60 * 60 * 1000, message: '1 hour' },           // 1 hour
+        { time: 30 * 60 * 1000, message: '30 minutes' }        // 30 minutes
+    ];
+
+    reminders.forEach(reminder => {
+        const timeUntilReminder = closeTime - reminder.time - now;
+        
+        // Only schedule if the reminder is in the future
+        if (timeUntilReminder > 0) {
+            setTimeout(async () => {
+                try {
+                    const thread = await client.channels.fetch(threadId);
+                    if (!thread) return;
+
+                    const reminderEmbed = new EmbedBuilder()
+                        .setColor(0xFF9300)
+                        .setTitle('⏰ Submission Deadline Approaching!')
+                        .setDescription(
+                            `**Only ${reminder.message} left** to submit your entry for:\n` +
+                            `"${theme}"\n\n` +
+                            `Submissions close <t:${Math.floor(closeTime / 1000)}:R>\n\n` +
+                            `Use \`/submit\` to enter your submission!`
+                        )
+                        .setTimestamp();
+
+                    await thread.send({ 
+                        content: `<@&${process.env.CONTEST_ROLE_ID}>`,
+                        embeds: [reminderEmbed]
+                    });
+
+                } catch (error) {
+                    console.error(`Error sending reminder:`, error);
+                }
+            }, timeUntilReminder);
+        }
+    });
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('startchallenge')
@@ -120,6 +166,14 @@ module.exports = {
                 .setTimestamp();
 
             await generalChat.send({ embeds: [announcementEmbed] });
+
+            scheduleReminders(
+                interaction.client,
+                submissionsClose,
+                thread.id,
+                result.insertId,
+                theme
+            );
 
             await interaction.editReply({ content: 'The challenge has been started successfully!' });
         } catch (error) {
