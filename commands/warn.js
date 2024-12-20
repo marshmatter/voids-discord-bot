@@ -51,15 +51,17 @@ module.exports = {
         });
 
         try {
+            // Defer the reply immediately at the start of the command
+            await interaction.deferReply({ ephemeral: true });
+
             const [warningDetails] = await db.execute('SELECT * FROM predefined_warnings WHERE id = ?', [warningId]);
 
             if (warningDetails.length === 0) {
-                return interaction.reply({ content: `No predefined warning found with ID: ${warningId}.`, ephemeral: true });
+                return interaction.editReply({ content: `No predefined warning found with ID: ${warningId}.`, ephemeral: true });
             }
 
             const description = warningDetails[0].description;
 
-            // Include moderator_id in the query
             await db.execute(
                 'INSERT INTO warnings (user_id, warning_id, description, context, moderator_id) VALUES (?, ?, ?, ?, ?)',
                 [targetUser.id, warningId, description, context, moderatorId]
@@ -83,6 +85,9 @@ module.exports = {
                 dmStatus = 'Unable to send warning via DM. User may have DMs disabled.';
             }
 
+            // Get moderator channel
+            const modChannel = await interaction.client.channels.fetch(process.env.MODERATOR_CHANNEL_IDS);
+
             const replyEmbed = new EmbedBuilder()
                 .setColor(0x00FF00)
                 .setTitle('Warning Issued')
@@ -95,7 +100,11 @@ module.exports = {
                 .setFooter({ text: dmStatus })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [replyEmbed] });
+            // Send confirmation to mod channel
+            await modChannel.send({ embeds: [replyEmbed] });
+
+            // Delete the deferred reply since we don't need any response
+            await interaction.deleteReply();
 
             const auditLogEmbed = new EmbedBuilder()
                 .setColor(0xFFA500)
@@ -114,9 +123,10 @@ module.exports = {
             if (auditLogChannel) {
                 await auditLogChannel.send({ embeds: [auditLogEmbed] });
             }
+
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: 'An error occurred while issuing the warning.', ephemeral: true });
+            await interaction.editReply({ content: 'An error occurred while issuing the warning.' });
         } finally {
             await db.end();
         }
