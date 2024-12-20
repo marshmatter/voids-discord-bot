@@ -1,6 +1,6 @@
 {
   "name": "cipher-bot",
-  "version": "1.0.5a",
+  "version": "1.0.5b",
   "description": "A Moderation & Contest Bot for the Dystopika / Voids Within Discord server.",
   "main": "index.js",
   "scripts": {

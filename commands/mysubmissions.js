@@ -44,6 +44,8 @@ module.exports = {
                 .setDescription(`Current Challenge: ${activeChallenge[0].theme}\nStatus: ${activeChallenge[0].state}`)
                 .setTimestamp();
 
+            const embeds = [];
+
             submissions.forEach((submission, index) => {
                 embed.addFields(
                     { 
@@ -61,8 +63,15 @@ module.exports = {
                         value: `<t:${Math.floor(new Date(submission.timestamp).getTime() / 1000)}:F>`,
                         inline: true 
                     }
-                )
-                .setImage(submission.submission_url);
+                );
+
+                if (submission.submission_url) {
+                    const submissionEmbed = new EmbedBuilder()
+                        .setColor(0x7700ff)
+                        .setImage(submission.submission_url);
+                    
+                    embeds.push(submissionEmbed);
+                }
             });
 
             embed.setFooter({ 
@@ -71,7 +80,7 @@ module.exports = {
                     : 'Voting is in progress - submissions can no longer be modified' 
             });
 
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed, ...embeds] });
 
         } catch (error) {
             console.error('Error fetching submissions:', error);
