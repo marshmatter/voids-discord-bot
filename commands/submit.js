@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
@@ -71,26 +71,9 @@ module.exports = {
             if (existingSubmission.length > 0) {
                 submissionId = existingSubmission[0].id;
                 if (existingSubmission[0].submitted === 0) {
-                    await db.execute(
-                        'UPDATE submissions SET submission_url = ?, description = ? WHERE id = ?',
-                        [image.url, description, submissionId]
-                    );
-
-                    const embed = new EmbedBuilder()
-                        .setColor(0x3498db)
-                        .setTitle('Submission Updated')
-                        .setDescription('Your previous submission has been successfully updated!')
-                        .addFields(
-                            { name: 'Submission Description', value: description },
-                            { name: 'Image URL', value: image.url }
-                        )
-                        .setImage(image.url)
-                        .setFooter({ text: 'Thank you for participating!' })
-                        .setTimestamp();
-
-                    await interaction.editReply({ embeds: [embed] });
-
-                    await forumThread.send(`<@${userId}> has updated their submission to this challenge!`);
+                    const response = await fetch(image.url);
+                    const imageBuffer = Buffer.from(await response.arrayBuffer());
+                    const attachment = new AttachmentBuilder(imageBuffer, { name: 'submission.png' });
 
                     const auditEmbed = new EmbedBuilder()
                         .setColor(0x3498db)
@@ -101,11 +84,34 @@ module.exports = {
                             { name: 'Challenge ID', value: challengeId.toString() },
                             { name: 'Submission ID', value: submissionId.toString() }
                         )
-                        .setImage(image.url)
                         .setTimestamp();
 
                     const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
-                    await auditChannel.send({ embeds: [auditEmbed] });
+                    const auditMessage = await auditChannel.send({ 
+                        embeds: [auditEmbed],
+                        files: [attachment]
+                    });
+
+                    const permanentUrl = auditMessage.attachments.first().url;
+
+                    await db.execute(
+                        'UPDATE submissions SET submission_url = ?, description = ? WHERE id = ?',
+                        [permanentUrl, description, submissionId]
+                    );
+
+                    const embed = new EmbedBuilder()
+                        .setColor(0x3498db)
+                        .setTitle('Submission Updated')
+                        .setDescription('Your previous submission has been successfully updated!')
+                        .addFields(
+                            { name: 'Submission Description', value: description }
+                        )
+                        .setImage(permanentUrl)
+                        .setFooter({ text: 'Thank you for participating!' })
+                        .setTimestamp();
+
+                    await interaction.editReply({ embeds: [embed] });
+                    await forumThread.send(`<@${userId}> has updated their submission to this challenge!`);
 
                     return;
                 } else {
@@ -115,9 +121,31 @@ module.exports = {
                 }
             }
 
+            const response = await fetch(image.url);
+            const imageBuffer = Buffer.from(await response.arrayBuffer());
+            const attachment = new AttachmentBuilder(imageBuffer, { name: 'submission.png' });
+
+            const auditEmbed = new EmbedBuilder()
+                .setColor(0x2ecc71)
+                .setTitle('✅ New Submission')
+                .setDescription(`New submission by ${username} (${userId})`)
+                .addFields(
+                    { name: 'Submission Description', value: description },
+                    { name: 'Challenge ID', value: challengeId.toString() }
+                )
+                .setTimestamp();
+
+            const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
+            const auditMessage = await auditChannel.send({ 
+                embeds: [auditEmbed],
+                files: [attachment]
+            });
+
+            const permanentUrl = auditMessage.attachments.first().url;
+
             const [result] = await db.execute(
                 'INSERT INTO submissions (user_id, challenge_id, submission_url, description, submitted) VALUES (?, ?, ?, ?, 0)',
-                [userId, challengeId, image.url, description]
+                [userId, challengeId, permanentUrl, description]
             );
 
             submissionId = result.insertId;
@@ -128,9 +156,9 @@ module.exports = {
                 .setDescription('Your entry has been successfully submitted!')
                 .addFields(
                     { name: 'Submission Description', value: description },
-                    { name: 'Image URL', value: image.url }
+                    { name: 'Image URL', value: permanentUrl }
                 )
-                .setImage(image.url)
+                .setImage(permanentUrl)
                 .setFooter({ text: 'Thank you for participating!' })
                 .setTimestamp();
 
@@ -143,20 +171,12 @@ module.exports = {
                 [message.id, submissionId]
             );
 
-            const auditEmbed = new EmbedBuilder()
-                .setColor(0x2ecc71)
-                .setTitle('✅ New Submission')
-                .setDescription(`New submission by ${username} (${userId})`)
-                .addFields(
-                    { name: 'Submission Description', value: description },
-                    { name: 'Challenge ID', value: challengeId.toString() },
-                    { name: 'Submission ID', value: submissionId.toString() }
-                )
-                .setImage(image.url)
-                .setTimestamp();
+            auditEmbed.addFields({ 
+                name: 'Submission ID', 
+                value: submissionId.toString() 
+            });
 
-            const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
-            await auditChannel.send({ embeds: [auditEmbed] });
+            await auditMessage.edit({ embeds: [auditEmbed] });
 
         } catch (error) {
             console.error('Error submitting entry:', error);
