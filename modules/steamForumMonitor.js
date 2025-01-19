@@ -81,6 +81,13 @@ async function checkSteamForum(client) {
         while ((match = topicPattern.exec(responseText)) !== null) {
             const [_, id, rawTitle, author, link, lastPost] = match;
             const title = cleanHtml(rawTitle);
+            
+            // Skip discussions with empty titles
+            if (!title.trim()) {
+                console.log('Skipping discussion with empty title');
+                continue;
+            }
+
             const time = cleanHtml(lastPost);
 
             // Extract the tooltip content for the preview
@@ -148,18 +155,21 @@ async function checkSteamForum(client) {
 
 // Helper function to post discussions to Discord
 async function postDiscussionsToDiscord(client, discussions) {
-    const modChannelId = process.env.MODERATOR_CHANNEL_IDS.split(',')[0];
-    console.log('Attempting to post to Discord channel:', modChannelId);
+    const userIds = ['240982820414029824', '862537604138401822'];
+    console.log('Attempting to send DMs to users:', userIds);
     
     try {
-        const modChannel = await client.channels.fetch(modChannelId);
-        if (!modChannel) {
-            throw new Error(`Could not find Discord channel with ID: ${modChannelId}`);
-        }
-        
-        console.log(`Found Discord channel: ${modChannel.name}`);
+        // Fetch all users first
+        const users = await Promise.all(userIds.map(id => client.users.fetch(id)));
+        console.log(`Found ${users.length} users to notify`);
         
         for (const discussion of discussions) {
+            // Skip discussions with empty titles
+            if (!discussion.title.trim()) {
+                console.log('Skipping discussion with empty title:', discussion);
+                continue;
+            }
+
             console.log(`Creating embed for discussion: "${discussion.title}"`);
             
             const embed = new EmbedBuilder()
@@ -168,18 +178,13 @@ async function postDiscussionsToDiscord(client, discussions) {
                     name: 'New Steam Discussion',
                     iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/512px-Steam_icon_logo.svg.png'
                 })
-                .setTitle(discussion.title)
+                .setTitle(discussion.title || 'Untitled Discussion')
                 .setURL(discussion.link)
                 .setDescription(discussion.content.substring(0, 2048) || '*No content preview available*')
                 .addFields([
                     {
                         name: '👤 Author',
                         value: discussion.author,
-                        inline: true
-                    },
-                    {
-                        name: '⏰ Posted',
-                        value: discussion.time,
                         inline: true
                     }
                 ])
@@ -196,21 +201,62 @@ async function postDiscussionsToDiscord(client, discussions) {
                 });
             }
 
-            console.log('Sending embed to Discord...');
-            await modChannel.send({ embeds: [embed] });
-            console.log('Successfully posted discussion to Discord');
+            // Send DM to each user
+            for (const user of users) {
+                console.log(`Sending DM to ${user.tag}...`);
+                try {
+                    await user.send({ embeds: [embed] });
+                    console.log(`Successfully sent DM to ${user.tag}`);
+                } catch (dmError) {
+                    console.error(`Failed to send DM to ${user.tag}:`, dmError);
+                }
+            }
         }
     } catch (error) {
-        console.error('Error posting to Discord:', error.stack);
-        // Log the channel ID and discussions for debugging
-        console.error('Channel ID:', modChannelId);
+        console.error('Error sending DMs:', error.stack);
         console.error('Discussions:', JSON.stringify(discussions, null, 2));
     }
 }
 
+// Add this new function for startup notification
+async function sendStartupNotification(client) {
+    const userIds = ['240982820414029824', '862537604138401822'];
+    console.log('Sending startup notification to users:', userIds);
+    
+    try {
+        const users = await Promise.all(userIds.map(id => client.users.fetch(id)));
+        
+        const embed = new EmbedBuilder()
+            .setColor(0x1b2838)
+            .setAuthor({
+                name: 'Steam Forum Monitor',
+                iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/512px-Steam_icon_logo.svg.png'
+            })
+            .setTitle('Monitor Started')
+            .setDescription('The Steam forum monitor has started and is now watching for new discussions.')
+            .setTimestamp();
+
+        for (const user of users) {
+            console.log(`Sending startup notification to ${user.tag}...`);
+            try {
+                await user.send({ embeds: [embed] });
+                console.log(`Successfully sent startup notification to ${user.tag}`);
+            } catch (dmError) {
+                console.error(`Failed to send startup notification to ${user.tag}:`, dmError);
+            }
+        }
+    } catch (error) {
+        console.error('Error sending startup notifications:', error.stack);
+    }
+}
+
+// Update the start function to send the startup notification
 module.exports = {
     start: async (client) => {
         console.log('Starting Steam forum monitor...');
+        
+        // Send startup notification first
+        await sendStartupNotification(client);
         
         // Do initial check and wait for it to complete
         await checkSteamForum(client);
