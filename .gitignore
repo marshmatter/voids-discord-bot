@@ -7,3 +7,5 @@ delete-commands.js
 config
 del.js
 .gitignore
+.next
+.env.local

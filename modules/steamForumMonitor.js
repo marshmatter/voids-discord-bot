@@ -4,6 +4,7 @@ const { EmbedBuilder } = require('discord.js');
 // Move these to module scope and initialize with empty values
 let lastKnownDiscussions = new Set();
 let isFirstRun = true;
+let activeChallenges = new Set();
 
 const CHECK_INTERVAL = 60 * 1000; // 60 seconds
 
@@ -118,6 +119,18 @@ async function checkForumCategory(categoryId, responseText) {
         } else {
             console.log(`Skipping discussion "${title}": not a recent post (${time})`);
         }
+
+        // Add this to track challenges
+        if (title.toLowerCase().includes('challenge')) {
+            activeChallenges.add({
+                id: id,
+                title: title,
+                status: 'Active',
+                created: new Date().toISOString(),
+                author: author,
+                link: link
+            });
+        }
     }
     return discussions;
 }
@@ -168,7 +181,7 @@ async function checkSteamForum(client) {
 
 // Helper function to post discussions to Discord
 async function postDiscussionsToDiscord(client, discussions) {
-    const userIds = ['240982820414029824', '862537604138401822'];
+    const userIds = ['862537604138401822'];
     console.log('Attempting to send DMs to users:', userIds);
     
     try {
@@ -233,7 +246,7 @@ async function postDiscussionsToDiscord(client, discussions) {
 
 // Add this new function for startup notification
 async function sendStartupNotification(client) {
-    const userIds = ['240982820414029824', '862537604138401822'];
+    const userIds = ['862537604138401822'];
     console.log('Sending startup notification to users:', userIds);
     
     try {
@@ -263,6 +276,16 @@ async function sendStartupNotification(client) {
     }
 }
 
+// Add this function to export challenges
+async function getActiveChallenges() {
+    return Array.from(activeChallenges).map(challenge => ({
+        id: challenge.id,
+        status: challenge.status,
+        created: challenge.created,
+        title: challenge.title
+    }));
+}
+
 // Update the start function to send the startup notification
 module.exports = {
     start: async (client) => {
@@ -277,5 +300,6 @@ module.exports = {
         // After initial check completes, start the interval
         console.log('Initial check complete, starting regular monitoring...');
         setInterval(() => checkSteamForum(client), CHECK_INTERVAL);
-    }
+    },
+    getActiveChallenges
 }; 
