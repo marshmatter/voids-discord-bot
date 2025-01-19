@@ -2,6 +2,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const { version } = require('./package.json');
+const steamForumMonitor = require('./modules/steamForumMonitor.js');
 
 const client = new Client({
     intents: [
@@ -99,6 +100,9 @@ client.once('ready', () => {
         }],
         status: 'online',
     });
+
+    // Start monitoring Steam forum
+    steamForumMonitor.start(client);
 });
 
 client.login(process.env.BOT_TOKEN);
