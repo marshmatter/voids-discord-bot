@@ -28,22 +28,23 @@ module.exports = {
                 return interaction.reply({ content: 'No predefined warnings found in the database.', ephemeral: true });
             }
 
-            // Paginate warnings
             const embeds = [];
-            const warningsPerPage = 25;
-
-            for (let i = 0; i < warnings.length; i += warningsPerPage) {
-                const slice = warnings.slice(i, i + warningsPerPage);
+            const WARNINGS_PER_EMBED = 5; 
+            
+            for (let i = 0; i < warnings.length; i += WARNINGS_PER_EMBED) {
+                const warningChunk = warnings.slice(i, i + WARNINGS_PER_EMBED);
+                const currentPage = Math.floor(i / WARNINGS_PER_EMBED) + 1;
+                const totalPages = Math.ceil(warnings.length / WARNINGS_PER_EMBED);
 
                 const embed = new EmbedBuilder()
                     .setColor(0x2ecc71)
-                    .setTitle('Predefined Warnings')
-                    .setDescription(`Here is a list of all predefined warnings available for use. Page ${Math.ceil(i / warningsPerPage) + 1}/${Math.ceil(warnings.length / warningsPerPage)}`)
+                    .setTitle(currentPage === 1 ? 'Predefined Warnings' : 'Predefined Warnings (Continued)')
+                    .setDescription(`Page ${currentPage}/${totalPages}`)
                     .setTimestamp();
 
-                slice.forEach(warning => {
-                    const truncatedDescription = warning.description.length > 1024
-                        ? `${warning.description.substring(0, 1021)}...`
+                for (const warning of warningChunk) {
+                    const truncatedDescription = warning.description.length > 500
+                        ? `${warning.description.substring(0, 497)}...`
                         : warning.description;
 
                     embed.addFields({
@@ -51,12 +52,11 @@ module.exports = {
                         value: truncatedDescription,
                         inline: false
                     });
-                });
+                }
 
                 embeds.push(embed);
             }
 
-            // Send all embeds in a single reply
             await interaction.reply({ embeds: embeds, ephemeral: true });
 
         } catch (error) {
