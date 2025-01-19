@@ -1,8 +1,11 @@
 const fetch = require('node-fetch');
 const { EmbedBuilder } = require('discord.js');
 
+// Move these to module scope and initialize with empty values
 let lastKnownDiscussions = new Set();
-let lastCheck = Date.now();
+let isFirstRun = true;
+
+const CHECK_INTERVAL = 60 * 1000; // 60 seconds
 
 function cleanHtml(str) {
     return str
@@ -17,58 +20,27 @@ function cleanHtml(str) {
 }
 
 function parseTimeAgo(timeStr) {
-    // First, check if it's a date format like "Jan 15 @ 2:15pm"
-    const dateMatch = timeStr.match(/(\w+)\s+(\d+)\s*@\s*(\d+):(\d+)(am|pm)/i);
-    if (dateMatch) {
-        const [_, month, day, hour, minute, ampm] = dateMatch;
-        const now = new Date();
-        
-        // Always use 2024 as the base year for consistency
-        const year = 2024;
-        const date = new Date(year, getMonthNumber(month), parseInt(day));
-        let hours = parseInt(hour);
-        
-        // Convert to 24 hour format
-        if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-        if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
-        
-        date.setHours(hours, parseInt(minute));
-        
-        // For testing purposes, pretend "now" is also in 2024
-        const testNow = new Date(2024, now.getMonth(), now.getDate(), 
-                               now.getHours(), now.getMinutes(), now.getSeconds());
-        
-        // Calculate minutes ago
-        const minutesAgo = Math.floor((testNow - date) / (1000 * 60));
-        console.log('Time parsing:', {
-            timeStr,
-            date: date.toISOString(),
-            minutesAgo,
-            testNow: testNow.toISOString()
-        });
-        return minutesAgo;
+    // Check for "just now"
+    if (timeStr.toLowerCase() === 'just now') {
+        return 0;
     }
 
-    // Then check for relative time formats
-    const matches = {
-        'Just now': 0,
-        'minute ago': 1,
-        'minutes ago': match => parseInt(match),
-        'hour ago': 60,
-        'hours ago': match => parseInt(match) * 60,
-        'day ago': 24 * 60,
-        'days ago': match => parseInt(match) * 24 * 60
-    };
-
-    for (const [pattern, minutes] of Object.entries(matches)) {
-        if (timeStr.includes(pattern)) {
-            if (typeof minutes === 'function') {
-                const num = parseInt(timeStr);
-                return minutes(num);
-            }
-            return minutes;
+    // Check for "X minutes/hours ago"
+    const relativeMatch = timeStr.match(/(\d+)\s*(minute|minutes|hour|hours)\s*ago/i);
+    if (relativeMatch) {
+        const [_, amount, unit] = relativeMatch;
+        const number = parseInt(amount);
+        
+        switch(unit.toLowerCase()) {
+            case 'minute':
+            case 'minutes':
+                return number;
+            case 'hour':
+            case 'hours':
+                return number * 60;
         }
     }
+
     return null;
 }
 
@@ -94,167 +66,157 @@ async function checkSteamForum(client) {
         const url = `https://steamcommunity.com/app/${process.env.STEAM_APP_ID}/discussions/`;
         console.log('\nChecking Steam forum for new discussions...');
 
-        // Debug client state
-        console.log('Bot Status:', {
-            loggedIn: client.user?.tag || 'Not logged in',
-            ready: client.isReady()
-        });
-
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'text/html',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Cookie': 'Steam_Language=english'
-            }
-        });
-
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         responseText = await response.text();
         const discussions = [];
-        const forumTopicPattern = /<div[^>]*?class="forum_topic[^"]*"[^>]*?data-gidforumtopic="([^"]*)"[^>]*?>[\s\S]*?<a[^>]*?href="([^"]*)"[^>]*?>[\s\S]*?<div class="forum_topic_name[^"]*">([^<]+)<\/div>/g;
-        let topicMatch;
+        
+        // Find all forum topics with their last post times
+        const topicPattern = /<div[^>]*?class="forum_topic(?!\s+[^"]*?sticky)[^"]*?"[^>]*?data-gidforumtopic="([^"]*)"[^>]*?>[\s\S]*?<div class="forum_topic_name[^"]*?"[^>]*?>(?:<[^>]*>)*([^<]+)[\s\S]*?<div class="forum_topic_op"[^>]*?>([^<]+)[\s\S]*?<a[^>]*?href="([^"]+)"[\s\S]*?<div class="forum_topic_lastpost"[^>]*?>([^<]+)<\/div>/g;
 
-        while ((topicMatch = forumTopicPattern.exec(responseText)) !== null) {
-            const topicId = topicMatch[1];
-            const link = topicMatch[2];
-            const title = topicMatch[3];
+        let match;
+        while ((match = topicPattern.exec(responseText)) !== null) {
+            const [_, id, rawTitle, author, link, lastPost] = match;
+            const title = cleanHtml(rawTitle);
+            const time = cleanHtml(lastPost);
 
-            // Skip if we've seen this discussion before
-            if (lastKnownDiscussions.has(link)) {
-                continue;
-            }
+            // Extract the tooltip content for the preview
+            const tooltipMatch = match[0].match(/data-tooltip-forum="([^"]*)"/);
+            const tooltipContent = tooltipMatch ? 
+                decodeHtml(tooltipMatch[1]).match(/<div class="topic_hover_text">([\s\S]*?)<\/div>/i) : null;
+            const content = tooltipContent ? cleanHtml(tooltipContent[1]) : '';
 
-            // Find the tooltip data for this specific topic
-            const tooltipPattern = new RegExp(`data-gidforumtopic="${topicId}"[^>]*?data-tooltip-forum="([^"]*)"`, 'i');
-            const tooltipMatch = responseText.match(tooltipPattern);
-            
-            if (tooltipMatch) {
-                const tooltipData = decodeHtml(tooltipMatch[1]);
-                const contentMatch = tooltipData.match(/<div class="topic_hover_text">([\s\S]*?)<\/div>/i);
-                const authorMatch = tooltipData.match(/Posted by:\s*<span class="topic_hover_data">([^<]+)<\/span>/i);
-                const timeMatch = tooltipData.match(/Posted by:[^<]*<span[^>]*>[^<]*<\/span>,\s*<span[^>]*>([^<]+)<\/span>/i);
+            console.log('Found topic:', {
+                id,
+                title,
+                author: cleanHtml(author),
+                time,
+                link
+            });
 
-                if (authorMatch && timeMatch) {
-                    const time = cleanHtml(timeMatch[1]);
-                    const minutesAgo = parseTimeAgo(time);
-                    
-                    // Only add discussions that are from the current month/year
-                    const now = new Date();
-                    const discussionDate = new Date(2024, getMonthNumber(time.split(' ')[0]), parseInt(time.split(' ')[1]));
-                    
-                    if (discussionDate.getMonth() === now.getMonth() && 
-                        discussionDate.getDate() === now.getDate()) {
-                        const discussion = {
-                            id: topicId,
-                            title: cleanHtml(title),
-                            content: contentMatch ? cleanHtml(contentMatch[1]) : '',
-                            link,
-                            author: cleanHtml(authorMatch[1]),
-                            time,
-                            minutesAgo
-                        };
-                        discussions.push(discussion);
-                    }
-                }
-            }
-        }
-
-        // Filter for only new or recent discussions
-        const newDiscussions = discussions.filter(discussion => {
-            const isRecent = discussion.minutesAgo !== null && discussion.minutesAgo <= 60; // Changed to 60 minutes (1 hour)
-            const isNew = !lastKnownDiscussions.has(discussion.link);
-            return isRecent && isNew; // Must be both recent AND new
-        });
-
-        if (newDiscussions.length > 0) {
-            console.log(`Found ${newDiscussions.length} new discussion(s) from the last hour`);
-            const modChannelId = process.env.MODERATOR_CHANNEL_IDS.split(',')[0];
-
-            try {
-                const modChannel = await client.channels.fetch(modChannelId);
+            // Check if this is a recent post
+            if (time.match(/(?:just now|\d+\s*(?:minutes?|hours?)\s*ago)/i)) {
+                const minutesAgo = parseTimeAgo(time);
                 
-                for (const discussion of newDiscussions) {
-                    console.log(`Posting discussion: "${discussion.title}"`);
-                    
-                    const embed = new EmbedBuilder()
-                        .setColor(0x1b2838)
-                        .setAuthor({
-                            name: 'New Steam Discussion',
-                            iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/512px-Steam_icon_logo.svg.png'
-                        })
-                        .setTitle(discussion.title)
-                        .setURL(discussion.link)
-                        .setDescription(discussion.content.substring(0, 2048) || '*No content preview available*')
-                        .addFields([
-                            {
-                                name: '👤 Author',
-                                value: discussion.author,
-                                inline: true
-                            },
-                            {
-                                name: '⏰ Posted',
-                                value: discussion.time,
-                                inline: true
-                            }
-                        ])
-                        .setFooter({
-                            text: 'Dystopika Steam Community',
-                            iconURL: 'https://cdn.akamai.steamstatic.com/steam/apps/2379910/capsule_231x87.jpg'
-                        })
-                        .setTimestamp();
-
-                    // If there's no content, we can add a note
-                    if (!discussion.content) {
-                        embed.addFields({
-                            name: '💡 Note',
-                            value: 'Click the title above to view the full discussion on Steam'
-                        });
-                    }
-
-                    try {
-                        const sent = await modChannel.send({ embeds: [embed] });
-                        console.log('Successfully sent message:', sent.id);
-                        lastKnownDiscussions.add(discussion.link);
-                    } catch (sendError) {
-                        console.error('Error sending message:', {
-                            error: sendError.message,
-                            code: sendError.code,
-                            status: sendError.status
-                        });
-                    }
+                if (minutesAgo !== null && !lastKnownDiscussions.has(link)) {
+                    const discussion = {
+                        id,
+                        title,
+                        author: cleanHtml(author),
+                        time,
+                        link,
+                        minutesAgo,
+                        content
+                    };
+                    discussions.push(discussion);
+                    console.log('Added new discussion:', {
+                        title,
+                        time,
+                        minutesAgo
+                    });
+                } else {
+                    console.log(`Skipping discussion "${title}": minutesAgo=${minutesAgo}, known=${lastKnownDiscussions.has(link)}`);
                 }
-            } catch (channelError) {
-                console.error('Error fetching channel:', {
-                    error: channelError.message,
-                    code: channelError.code,
-                    status: channelError.status
-                });
+            } else {
+                console.log(`Skipping discussion "${title}": not a recent post (${time})`);
             }
-        } else {
-            console.log('No new discussions found');
         }
 
-        // Debug the known discussions set
-        console.log('Known discussions count:', lastKnownDiscussions.size);
+        // Process discussions
+        if (discussions.length > 0) {
+            if (isFirstRun) {
+                console.log('First run - building initial discussion list and posting...');
+                await postDiscussionsToDiscord(client, discussions);
+                discussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
+                isFirstRun = false;
+                console.log(`Initial discussion count: ${lastKnownDiscussions.size}`);
+            } else {
+                console.log(`Found ${discussions.length} new discussion(s) to post`);
+                await postDiscussionsToDiscord(client, discussions);
+                // Add new discussions to known set after posting
+                discussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
+            }
+        }
 
     } catch (error) {
-        console.error('Error in Steam forum check:', {
-            message: error.message,
-            stack: error.stack
-        });
+        console.error('Error in Steam forum check:', error);
+    }
+}
+
+// Helper function to post discussions to Discord
+async function postDiscussionsToDiscord(client, discussions) {
+    const modChannelId = process.env.MODERATOR_CHANNEL_IDS.split(',')[0];
+    console.log('Attempting to post to Discord channel:', modChannelId);
+    
+    try {
+        const modChannel = await client.channels.fetch(modChannelId);
+        if (!modChannel) {
+            throw new Error(`Could not find Discord channel with ID: ${modChannelId}`);
+        }
+        
+        console.log(`Found Discord channel: ${modChannel.name}`);
+        
+        for (const discussion of discussions) {
+            console.log(`Creating embed for discussion: "${discussion.title}"`);
+            
+            const embed = new EmbedBuilder()
+                .setColor(0x1b2838)
+                .setAuthor({
+                    name: 'New Steam Discussion',
+                    iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/512px-Steam_icon_logo.svg.png'
+                })
+                .setTitle(discussion.title)
+                .setURL(discussion.link)
+                .setDescription(discussion.content.substring(0, 2048) || '*No content preview available*')
+                .addFields([
+                    {
+                        name: '👤 Author',
+                        value: discussion.author,
+                        inline: true
+                    },
+                    {
+                        name: '⏰ Posted',
+                        value: discussion.time,
+                        inline: true
+                    }
+                ])
+                .setFooter({
+                    text: 'Dystopika Steam Community',
+                    iconURL: 'https://cdn.akamai.steamstatic.com/steam/apps/2379910/capsule_231x87.jpg'
+                })
+                .setTimestamp();
+
+            if (!discussion.content) {
+                embed.addFields({
+                    name: '💡 Note',
+                    value: 'Click the title above to view the full discussion on Steam'
+                });
+            }
+
+            console.log('Sending embed to Discord...');
+            await modChannel.send({ embeds: [embed] });
+            console.log('Successfully posted discussion to Discord');
+        }
+    } catch (error) {
+        console.error('Error posting to Discord:', error.stack);
+        // Log the channel ID and discussions for debugging
+        console.error('Channel ID:', modChannelId);
+        console.error('Discussions:', JSON.stringify(discussions, null, 2));
     }
 }
 
 module.exports = {
-    start: (client) => {
+    start: async (client) => {
         console.log('Starting Steam forum monitor...');
-        // Check every minute
-        setInterval(() => checkSteamForum(client), 60 * 1000);
         
-        // Initial check
-        checkSteamForum(client);
+        // Do initial check and wait for it to complete
+        await checkSteamForum(client);
+        
+        // After initial check completes, start the interval
+        console.log('Initial check complete, starting regular monitoring...');
+        setInterval(() => checkSteamForum(client), CHECK_INTERVAL);
     }
 }; 
