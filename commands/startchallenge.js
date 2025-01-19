@@ -130,7 +130,7 @@ module.exports = {
                 reason: 'Community Challenge Start',
             });
 
-            await db.execute(
+            const [result] = await db.execute(
                 'INSERT INTO challenges (theme, description, submissions_close, voting_begins, voting_ends, thread_id, state, active) VALUES (?, ?, ?, ?, ?, ?, "Submissions", 1)',
                 [theme, description, submissionsClose, votingBegins, votingEnds, thread.id]
             );            

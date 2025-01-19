@@ -111,7 +111,21 @@ module.exports = {
                         .setTimestamp();
 
                     await interaction.editReply({ embeds: [embed] });
-                    await forumThread.send(`<@${userId}> has updated their submission to this challenge!`);
+
+                    const publicEmbed = new EmbedBuilder()
+                        .setColor(0x3498db)
+                        .setTitle('Updated Challenge Submission')
+                        .setDescription(`Updated submission by <@${userId}>`)
+                        .addFields(
+                            { name: 'Description', value: description || 'No description provided.' }
+                        )
+                        .setImage(permanentUrl)
+                        .setTimestamp();
+
+                    await forumThread.send({ 
+                        content: `<@${userId}> has updated their submission!`,
+                        embeds: [publicEmbed] 
+                    });
 
                     return;
                 } else {
@@ -164,7 +178,20 @@ module.exports = {
 
             await interaction.editReply({ embeds: [embed] });
 
-            const message = await forumThread.send(`<@${userId}> has entered their submission to this challenge!`);
+            const publicEmbed = new EmbedBuilder()
+                .setColor(0x2ecc71)
+                .setTitle('New Challenge Submission')
+                .setDescription(`Submission by <@${userId}>`)
+                .addFields(
+                    { name: 'Description', value: description || 'No description provided.' }
+                )
+                .setImage(permanentUrl)
+                .setTimestamp();
+
+            const message = await forumThread.send({ 
+                content: `<@${userId}> has submitted their entry!`,
+                embeds: [publicEmbed] 
+            });
             
             await db.execute(
                 'UPDATE submissions SET message_id = ? WHERE id = ?',
