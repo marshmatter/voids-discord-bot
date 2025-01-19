@@ -60,91 +60,104 @@ function decodeHtml(html) {
         .replace(/&amp;/g, '&');
 }
 
-async function checkSteamForum(client) {
-    let responseText = '';
-    try {
-        const url = `https://steamcommunity.com/app/${process.env.STEAM_APP_ID}/discussions/`;
-        console.log('\nChecking Steam forum for new discussions...');
+// Add a function to check a specific forum category
+async function checkForumCategory(categoryId, responseText) {
+    const discussions = [];
+    const topicPattern = /<div[^>]*?class="forum_topic(?!\s+[^"]*?sticky)[^"]*?"[^>]*?data-gidforumtopic="([^"]*)"[^>]*?>[\s\S]*?<div class="forum_topic_name[^"]*?"[^>]*?>(?:<[^>]*>)*([^<]+)[\s\S]*?<div class="forum_topic_op"[^>]*?>([^<]+)[\s\S]*?<a[^>]*?href="([^"]+)"[\s\S]*?<div class="forum_topic_lastpost"[^>]*?>([^<]+)<\/div>/g;
 
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        responseText = await response.text();
-        const discussions = [];
+    let match;
+    while ((match = topicPattern.exec(responseText)) !== null) {
+        const [_, id, rawTitle, author, link, lastPost] = match;
+        const title = cleanHtml(rawTitle);
         
-        // Find all forum topics with their last post times
-        const topicPattern = /<div[^>]*?class="forum_topic(?!\s+[^"]*?sticky)[^"]*?"[^>]*?data-gidforumtopic="([^"]*)"[^>]*?>[\s\S]*?<div class="forum_topic_name[^"]*?"[^>]*?>(?:<[^>]*>)*([^<]+)[\s\S]*?<div class="forum_topic_op"[^>]*?>([^<]+)[\s\S]*?<a[^>]*?href="([^"]+)"[\s\S]*?<div class="forum_topic_lastpost"[^>]*?>([^<]+)<\/div>/g;
-
-        let match;
-        while ((match = topicPattern.exec(responseText)) !== null) {
-            const [_, id, rawTitle, author, link, lastPost] = match;
-            const title = cleanHtml(rawTitle);
-            
-            // Skip discussions with empty titles
-            if (!title.trim()) {
-                console.log('Skipping discussion with empty title');
-                continue;
-            }
-
-            const time = cleanHtml(lastPost);
-
-            // Extract the tooltip content for the preview
-            const tooltipMatch = match[0].match(/data-tooltip-forum="([^"]*)"/);
-            const tooltipContent = tooltipMatch ? 
-                decodeHtml(tooltipMatch[1]).match(/<div class="topic_hover_text">([\s\S]*?)<\/div>/i) : null;
-            const content = tooltipContent ? cleanHtml(tooltipContent[1]) : '';
-
-            console.log('Found topic:', {
-                id,
-                title,
-                author: cleanHtml(author),
-                time,
-                link
-            });
-
-            // Check if this is a recent post
-            if (time.match(/(?:just now|\d+\s*(?:minutes?|hours?)\s*ago)/i)) {
-                const minutesAgo = parseTimeAgo(time);
-                
-                if (minutesAgo !== null && !lastKnownDiscussions.has(link)) {
-                    const discussion = {
-                        id,
-                        title,
-                        author: cleanHtml(author),
-                        time,
-                        link,
-                        minutesAgo,
-                        content
-                    };
-                    discussions.push(discussion);
-                    console.log('Added new discussion:', {
-                        title,
-                        time,
-                        minutesAgo
-                    });
-                } else {
-                    console.log(`Skipping discussion "${title}": minutesAgo=${minutesAgo}, known=${lastKnownDiscussions.has(link)}`);
-                }
-            } else {
-                console.log(`Skipping discussion "${title}": not a recent post (${time})`);
-            }
+        // Skip discussions with empty titles
+        if (!title.trim()) {
+            console.log('Skipping discussion with empty title');
+            continue;
         }
 
-        // Process discussions
-        if (discussions.length > 0) {
+        const time = cleanHtml(lastPost);
+
+        // Extract the tooltip content for the preview
+        const tooltipMatch = match[0].match(/data-tooltip-forum="([^"]*)"/);
+        const tooltipContent = tooltipMatch ? 
+            decodeHtml(tooltipMatch[1]).match(/<div class="topic_hover_text">([\s\S]*?)<\/div>/i) : null;
+        const content = tooltipContent ? cleanHtml(tooltipContent[1]) : '';
+
+        console.log('Found topic:', {
+            id,
+            title,
+            author: cleanHtml(author),
+            time,
+            link
+        });
+
+        // Check if this is a recent post
+        if (time.match(/(?:just now|\d+\s*(?:minutes?|hours?)\s*ago)/i)) {
+            const minutesAgo = parseTimeAgo(time);
+            
+            if (minutesAgo !== null && !lastKnownDiscussions.has(link)) {
+                const discussion = {
+                    id,
+                    title,
+                    author: cleanHtml(author),
+                    time,
+                    link,
+                    minutesAgo,
+                    content
+                };
+                discussions.push(discussion);
+                console.log('Added new discussion:', {
+                    title,
+                    time,
+                    minutesAgo
+                });
+            } else {
+                console.log(`Skipping discussion "${title}": minutesAgo=${minutesAgo}, known=${lastKnownDiscussions.has(link)}`);
+            }
+        } else {
+            console.log(`Skipping discussion "${title}": not a recent post (${time})`);
+        }
+    }
+    return discussions;
+}
+
+// Update the main check function to handle multiple categories
+async function checkSteamForum(client) {
+    try {
+        const categories = [
+            { id: 0, name: 'General Discussions' },
+            { id: 1, name: 'Technical Help' }
+        ];
+
+        const allDiscussions = [];
+
+        for (const category of categories) {
+            const url = `https://steamcommunity.com/app/${process.env.STEAM_APP_ID}/discussions/${category.id}/`;
+            console.log(`\nChecking Steam forum category: ${category.name}...`);
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} for category ${category.name}`);
+            }
+
+            const responseText = await response.text();
+            const discussions = await checkForumCategory(category.id, responseText);
+            allDiscussions.push(...discussions);
+        }
+
+        // Process all discussions found
+        if (allDiscussions.length > 0) {
             if (isFirstRun) {
                 console.log('First run - building initial discussion list and posting...');
-                await postDiscussionsToDiscord(client, discussions);
-                discussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
+                await postDiscussionsToDiscord(client, allDiscussions);
+                allDiscussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
                 isFirstRun = false;
                 console.log(`Initial discussion count: ${lastKnownDiscussions.size}`);
             } else {
-                console.log(`Found ${discussions.length} new discussion(s) to post`);
-                await postDiscussionsToDiscord(client, discussions);
-                // Add new discussions to known set after posting
-                discussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
+                console.log(`Found ${allDiscussions.length} new discussion(s) to post`);
+                await postDiscussionsToDiscord(client, allDiscussions);
+                allDiscussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
             }
         }
 
