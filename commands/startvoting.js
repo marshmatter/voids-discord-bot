@@ -11,6 +11,7 @@ module.exports = {
 
         const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const CONTEST_ROLE_ID = process.env.CONTEST_ROLE_ID;
+        const FORUM_CHALLENGE_ID = process.env.FORUM_CHALLENGE_ID;
 
         const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
@@ -31,37 +32,41 @@ module.exports = {
             }
 
             const challengeId = activeChallenge[0].id;
-
-            const [challengeData] = await db.execute('SELECT thread_id FROM challenges WHERE id = ?', [challengeId]);
-
-            if (challengeData.length === 0 || !challengeData[0].thread_id) {
-                return interaction.editReply({ content: 'No forum thread found for the active challenge.', ephemeral: true });
-            }
-
-            const forumThreadId = challengeData[0].thread_id;
-            const challengeChannel = await interaction.client.channels.fetch(forumThreadId);
-
-            if (!challengeChannel) {
-                return interaction.editReply({ content: 'The challenge forum thread could not be found.', ephemeral: true });
-            }
+            const challengeTheme = activeChallenge[0].theme;
 
             const [submissions] = await db.execute('SELECT * FROM submissions WHERE challenge_id = ? AND submitted = 0', [challengeId]);
-
             if (submissions.length === 0) {
                 return interaction.editReply({ content: 'No submissions have been finalized for this challenge yet.', ephemeral: true });
             }
 
-            await challengeChannel.send(`<@&${CONTEST_ROLE_ID}> `);
+            // Create a new voting thread in the challenges forum
+            const challengeForum = await interaction.client.channels.fetch(FORUM_CHALLENGE_ID);
+            const votingThread = await challengeForum.threads.create({
+                name: `Voting: ${challengeTheme}`,
+                message: {
+                    content: `<@&${CONTEST_ROLE_ID}> Voting has begun for the "${challengeTheme}" challenge!`,
+                },
+                autoArchiveDuration: 1440,
+                reason: 'Community Challenge Voting',
+            });
 
             const votingAnnouncementEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle('Voting for the Community Challenge has Started!')
-                .setDescription('The voting process for this challenge submissions is now live! 🗳️\n\nPlease react to your favorite submissions below to cast your vote.')
+                .setTitle('🗳️ Community Challenge Voting')
+                .setDescription(
+                    `The voting process for "${challengeTheme}" is now live!\n\n` +
+                    `**How to Vote:**\n` +
+                    `• React with the Dystopika emoji on your favorite submissions\n` +
+                    `• You can vote for multiple submissions\n` +
+                    `• Please don't vote for your own submission\n\n` +
+                    `All submissions will be posted below. Good luck to all participants! 🎉`
+                )
                 .setFooter({ text: 'Vote for your favorite submissions!' })
                 .setTimestamp();
 
-            await challengeChannel.send({ embeds: [votingAnnouncementEmbed] });
+            await votingThread.send({ embeds: [votingAnnouncementEmbed] });
 
+            // Post each submission in the voting thread
             for (const submission of submissions) {
                 const user = await interaction.client.users.fetch(submission.user_id);
 
@@ -70,26 +75,63 @@ module.exports = {
                     .setTitle(`Submission by ${user.username}`)
                     .setDescription(submission.description || 'No description provided.')
                     .setImage(submission.submission_url)
-                    .setFooter({ text: 'Thank you for participating!' })
+                    .setFooter({ text: 'React with the Dystopika emoji to vote!' })
                     .setTimestamp();
 
-                const message = await challengeChannel.send({ embeds: [submissionEmbed] });
+                const message = await votingThread.send({ embeds: [submissionEmbed] });
 
-                const customEmoji = interaction.guild.emojis.cache.find(emoji => emoji.name === 'dystopika'); 
+                const customEmoji = interaction.guild.emojis.cache.find(emoji => emoji.name === 'dystopika');
                 if (customEmoji) {
-                    await message.react(customEmoji); 
+                    await message.react(customEmoji);
                 } else {
                     console.error('Custom emoji not found.');
                     await message.react('👍');
                 }
 
-                await db.execute('UPDATE submissions SET thread_id = ?, message_id = ?, vote_count = 0 WHERE id = ?', [forumThreadId, message.id, submission.id]);
+                // Update the submission record with the new voting message
+                await db.execute(
+                    'UPDATE submissions SET thread_id = ?, message_id = ?, vote_count = 0 WHERE id = ?',
+                    [votingThread.id, message.id, submission.id]
+                );
             }
 
+            // Update challenge and submissions status
             await db.execute('UPDATE submissions SET submitted = 1 WHERE challenge_id = ?', [challengeId]);
-            await db.execute('UPDATE challenges SET state = "Voting" WHERE id = ?', [challengeId]);
+            await db.execute(
+                'UPDATE challenges SET state = "Voting", voting_thread_id = ? WHERE id = ?',
+                [votingThread.id, challengeId]
+            );
 
-            await interaction.editReply({ content: 'Voting has been started! Submissions are now posted for voting.' });
+            // Post announcement in the original challenge thread
+            const originalThread = await interaction.client.channels.fetch(activeChallenge[0].thread_id);
+            const redirectEmbed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle('Voting Has Begun!')
+                .setDescription(
+                    `The voting phase for this challenge has started!\n\n` +
+                    `**Please head over to the [Voting Thread](${votingThread.url}) to view submissions and cast your votes!**`
+                )
+                .setTimestamp();
+
+            await originalThread.send({ embeds: [redirectEmbed] });
+
+            await interaction.editReply({ 
+                content: `Voting has been started! A new voting thread has been created: ${votingThread.url}` 
+            });
+
+            // Add audit log
+            const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
+            const auditEmbed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle('Voting Started')
+                .addFields(
+                    { name: 'Action By', value: interaction.user.tag },
+                    { name: 'Challenge', value: challengeTheme },
+                    { name: 'Challenge ID', value: challengeId.toString() }
+                )
+                .setTimestamp();
+
+            await auditChannel.send({ embeds: [auditEmbed] });
 
         } catch (error) {
             console.error('Error starting voting:', error);

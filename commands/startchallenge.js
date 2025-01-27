@@ -150,7 +150,7 @@ module.exports = {
                     { name: 'Voting Ends', value: `<t:${Math.floor(votingEndsDate.getTime() / 1000)}:F>` },
                     { name: 'How to Participate', value: '1. Type /submit in any channel.\n2. Upload your Image.\n3. Optionally, add the lore/backstory via the "description"!' }
                 )
-                .setFooter({ text: 'Good luck! We can’t wait to see your submissions!' })
+                .setFooter({ text: 'Good luck! We cannot wait to see your submissions!' })
                 .setTimestamp();
 
             await thread.send({ embeds: [embed] });
@@ -166,6 +166,20 @@ module.exports = {
                 .setTimestamp();
 
             await generalChat.send({ embeds: [announcementEmbed] });
+
+            // Add audit log
+            const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
+            const auditEmbed = new EmbedBuilder()
+                .setColor(0x2ecc71)
+                .setTitle('Challenge Started')
+                .addFields(
+                    { name: 'Action By', value: interaction.user.tag },
+                    { name: 'Challenge', value: theme },
+                    { name: 'Challenge ID', value: result.insertId.toString() }
+                )
+                .setTimestamp();
+
+            await auditChannel.send({ embeds: [auditEmbed] });
 
             scheduleReminders(
                 interaction.client,
