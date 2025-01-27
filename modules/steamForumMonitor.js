@@ -72,7 +72,7 @@ async function checkForumCategory(categoryId, responseText) {
         
         // Skip discussions with empty titles
         if (!title.trim()) {
-            console.log('Skipping discussion with empty title');
+            //console.log('Skipping discussion with empty title');
             continue;
         }
 
@@ -84,13 +84,14 @@ async function checkForumCategory(categoryId, responseText) {
             decodeHtml(tooltipMatch[1]).match(/<div class="topic_hover_text">([\s\S]*?)<\/div>/i) : null;
         const content = tooltipContent ? cleanHtml(tooltipContent[1]) : '';
 
-        console.log('Found topic:', {
-            id,
-            title,
-            author: cleanHtml(author),
-            time,
-            link
-        });
+        // Comment out the topic details logging
+        //console.log('Found topic:', {
+        //    id,
+        //    title,
+        //    author: cleanHtml(author),
+        //    time,
+        //    link
+        //});
 
         // Check if this is a recent post
         if (time.match(/(?:just now|\d+\s*(?:minutes?|hours?)\s*ago)/i)) {
@@ -107,16 +108,16 @@ async function checkForumCategory(categoryId, responseText) {
                     content
                 };
                 discussions.push(discussion);
-                console.log('Added new discussion:', {
-                    title,
-                    time,
-                    minutesAgo
-                });
+                //console.log('Added new discussion:', {
+                //    title,
+                //    time,
+                //    minutesAgo
+                //});
             } else {
-                console.log(`Skipping discussion "${title}": minutesAgo=${minutesAgo}, known=${lastKnownDiscussions.has(link)}`);
+                //console.log(`Skipping discussion "${title}": minutesAgo=${minutesAgo}, known=${lastKnownDiscussions.has(link)}`);
             }
         } else {
-            console.log(`Skipping discussion "${title}": not a recent post (${time})`);
+            //console.log(`Skipping discussion "${title}": not a recent post (${time})`);
         }
     }
     return discussions;
@@ -134,7 +135,7 @@ async function checkSteamForum(client) {
 
         for (const category of categories) {
             const url = `https://steamcommunity.com/app/${process.env.STEAM_APP_ID}/discussions/${category.id}/`;
-            console.log(`\nChecking Steam forum category: ${category.name}...`);
+            //console.log(`\nChecking Steam forum category: ${category.name}...`);
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -149,13 +150,13 @@ async function checkSteamForum(client) {
         // Process all discussions found
         if (allDiscussions.length > 0) {
             if (isFirstRun) {
-                console.log('First run - building initial discussion list and posting...');
+                //console.log('First run - building initial discussion list and posting...');
                 await postDiscussionsToDiscord(client, allDiscussions);
                 allDiscussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
                 isFirstRun = false;
-                console.log(`Initial discussion count: ${lastKnownDiscussions.size}`);
+                //console.log(`Initial discussion count: ${lastKnownDiscussions.size}`);
             } else {
-                console.log(`Found ${allDiscussions.length} new discussion(s) to post`);
+                //console.log(`Found ${allDiscussions.length} new discussion(s) to post`);
                 await postDiscussionsToDiscord(client, allDiscussions);
                 allDiscussions.forEach(discussion => lastKnownDiscussions.add(discussion.link));
             }
@@ -166,9 +167,19 @@ async function checkSteamForum(client) {
     }
 }
 
+// Helper function to get user IDs from environment variables
+function getUserIds() {
+    const userIdsString = process.env.STEAM_MONITOR_USER_IDS;
+    if (!userIdsString) {
+        console.warn('STEAM_MONITOR_USER_IDS not set in environment variables');
+        return [];
+    }
+    return userIdsString.split(',').map(id => id.trim());
+}
+
 // Helper function to post discussions to Discord
 async function postDiscussionsToDiscord(client, discussions) {
-    const userIds = ['240982820414029824', '862537604138401822'];
+    const userIds = getUserIds();
     console.log('Attempting to send DMs to users:', userIds);
     
     try {
@@ -179,7 +190,7 @@ async function postDiscussionsToDiscord(client, discussions) {
         for (const discussion of discussions) {
             // Skip discussions with empty titles
             if (!discussion.title.trim()) {
-                console.log('Skipping discussion with empty title:', discussion);
+                //console.log('Skipping discussion with empty title:', discussion);
                 continue;
             }
 
@@ -233,7 +244,7 @@ async function postDiscussionsToDiscord(client, discussions) {
 
 // Add this new function for startup notification
 async function sendStartupNotification(client) {
-    const userIds = ['240982820414029824', '862537604138401822'];
+    const userIds = getUserIds();
     console.log('Sending startup notification to users:', userIds);
     
     try {
