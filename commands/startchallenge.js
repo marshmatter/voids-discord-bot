@@ -123,7 +123,7 @@ module.exports = {
             const thread = await challengeForum.threads.create({
                 name: `Challenge: ${theme}`,
                 message: {
-                    content: `<@&${CONTEST_ROLE_ID}>  A new community challenge has begun! Feel free to discuss the challenge here. Enter your submission via /submit when you're ready! You may revise your submission until voting has started. Additionally, submissions will remain private until voting has started!`,
+                    content: `<@&${CONTEST_ROLE_ID}>  A new community challenge has begun! Feel free to discuss the challenge here. Enter your submission via /submit when you're ready!`,
                     files: image ? [image.url] : [],
                 },
                 autoArchiveDuration: 1440,
