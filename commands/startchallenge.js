@@ -8,9 +8,9 @@ function scheduleReminders(client, submissionsClose, threadId, challengeId, them
     // Schedule reminders at different intervals
     const reminders = [
         { time: 24 * 60 * 60 * 1000, message: '24 hours' },    // 24 hours
-        { time: 6 * 60 * 60 * 1000, message: '6 hours' },      // 6 hours
-        { time: 60 * 60 * 1000, message: '1 hour' },           // 1 hour
-        { time: 30 * 60 * 1000, message: '30 minutes' }        // 30 minutes
+ //       { time: 6 * 60 * 60 * 1000, message: '6 hours' },      // 6 hours
+ //       { time: 60 * 60 * 1000, message: '1 hour' },           // 1 hour
+ //       { time: 30 * 60 * 1000, message: '30 minutes' }        // 30 minutes
     ];
 
     reminders.forEach(reminder => {
