@@ -66,4 +66,4 @@ This bot was made to handle contest submissions and small moderation efforts for
 
 Alert - This will alert the challenge role when there is 24 hours left for a challenge.
 
-Steam Forum Monitor - This will monitor the Steam forums for new discussions and notify moderators in direct messages if a new one is found.
+Steam Forum Monitor - This will monitor the Steam forums for new discussions and notify moderators in direct messages if a new one is found. test
