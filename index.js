@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActivityType } = require('discord.js');
 const fs = require('fs');
 const { version } = require('./package.json');
 const steamForumMonitor = require('./modules/steamForumMonitor.js');
@@ -28,7 +28,7 @@ const MODERATOR_CHANNEL_IDS = process.env.MODERATOR_CHANNEL_IDS
     : [];
 if (MODERATOR_CHANNEL_IDS.length === 0) {
     console.error('Error: MODERATOR_CHANNEL_IDS is not defined in the .env file.');
-    process.exit(1); 
+    process.exit(1);
 }
 
 client.on('interactionCreate', async (interaction) => {
@@ -95,8 +95,8 @@ client.once('ready', () => {
 
     client.user.setPresence({
         activities: [{
-            name: 'Dystopika', 
-            type: 0, // Activity Type 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching | using "Streaming" will set their icon to purple.
+            name: 'Dystopika',
+            type: ActivityType.Playing,
         }],
         status: 'online',
     });
