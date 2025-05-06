@@ -12,6 +12,8 @@ module.exports = {
         const MODERATOR_ROLE_IDS = process.env.MODERATOR_ROLE_ID.split(',');
         const CONTEST_ROLE_ID = process.env.CONTEST_ROLE_ID;
         const FORUM_CHALLENGE_ID = process.env.FORUM_CHALLENGE_ID;
+        const GENERAL_CHAT_ID = process.env.GENERAL_CHAT_ID;
+        const CHALLENGE_FORUM_ID = process.env.FORUM_CHALLENGE_ID;
 
         const hasModeratorRole = MODERATOR_ROLE_IDS.some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasModeratorRole) {
@@ -132,6 +134,20 @@ module.exports = {
                 .setTimestamp();
 
             await auditChannel.send({ embeds: [auditEmbed] });
+
+            // Challenge Voting Announcement
+            const generalChat = await interaction.client.channels.fetch(GENERAL_CHAT_ID);
+            const announcementEmbed = new EmbedBuilder()
+                .setColor(0x7700ff)
+                .setTitle('🚨 Community Challenge has Started Voting! 🚨')
+                .setDescription(
+                    `Our current community challenge has entered the voting phase! Visit <#${CHALLENGE_FORUM_ID}> to learn more.\n\n` +
+                    `Want to be notified about current and future challenges? Grant yourself the "Challenge Alerts" role by typing \`/challengealerts\`.`
+                )
+                .setTimestamp();
+
+            await generalChat.send({ embeds: [announcementEmbed] });
+
 
         } catch (error) {
             console.error('Error starting voting:', error);
