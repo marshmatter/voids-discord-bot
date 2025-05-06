@@ -62,6 +62,10 @@ This bot was made to handle contest submissions and small moderation efforts for
 
 /botinfo - This will allow a user to see information about the bot such as destination and up time.
 
+/logs - This will open a guide for a player to get their player log.
+
+/roadmap - This will open up an image of the current roadmap.
+
 ## other
 
 Alert - This will alert the challenge role when there is 24 hours left for a challenge.
