@@ -66,7 +66,7 @@ This bot was made to handle contest submissions and small moderation efforts for
 
 **/roadmap** - This will open up an image of the current roadmap.
 
-## other
+## Other
 
 **Alert** - This will alert the challenge role when there is 24 hours left for a challenge.
 
