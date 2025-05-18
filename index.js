@@ -146,6 +146,7 @@ client.once('ready', () => {
         channel: 'SYSTEM',
         user: 'BOT'
     });
+    console.log('successfully finished startup');
 
     client.user.setPresence({
         activities: [{
