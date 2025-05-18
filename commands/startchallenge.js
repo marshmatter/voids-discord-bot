@@ -1,22 +1,20 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ThreadAutoArchiveDuration } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 function scheduleReminders(client, submissionsClose, threadId, challengeId, theme) {
     const now = new Date().getTime();
     const closeTime = new Date(submissionsClose + ' UTC').getTime();
     
-    // Schedule reminders at different intervals
     const reminders = [
         { time: 24 * 60 * 60 * 1000, message: '24 hours' },    // 24 hours
- //       { time: 6 * 60 * 60 * 1000, message: '6 hours' },      // 6 hours
- //       { time: 60 * 60 * 1000, message: '1 hour' },           // 1 hour
- //       { time: 30 * 60 * 1000, message: '30 minutes' }        // 30 minutes
+//        { time: 6 * 60 * 60 * 1000, message: '6 hours' },      // 6 hours
+//        { time: 60 * 60 * 1000, message: '1 hour' },           // 1 hour
+//        { time: 30 * 60 * 1000, message: '30 minutes' }        // 30 minutes
     ];
 
     reminders.forEach(reminder => {
         const timeUntilReminder = closeTime - reminder.time - now;
         
-        // Only schedule if the reminder is in the future
         if (timeUntilReminder > 0) {
             setTimeout(async () => {
                 try {
@@ -34,9 +32,19 @@ function scheduleReminders(client, submissionsClose, threadId, challengeId, them
                         )
                         .setTimestamp();
 
+                    const reminderButtons = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('submit_entry')
+                                .setLabel('How to Submit')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setEmoji('📝')
+                        );
+
                     await thread.send({ 
                         content: `<@&${process.env.CONTEST_ROLE_ID}>`,
-                        embeds: [reminderEmbed]
+                        embeds: [reminderEmbed],
+                        components: [reminderButtons]
                     });
 
                 } catch (error) {
@@ -80,6 +88,11 @@ module.exports = {
             option.setName('image')
                 .setDescription('Required image to display in the challenge thread.')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('approved_mods')
+                .setDescription('Format: "Mod Name|Workshop URL" (one per line). Example: "My Mod|https://steamcommunity.com/..."')
+                .setRequired(false)
         ),
 
     async execute(interaction) {
@@ -116,7 +129,20 @@ module.exports = {
             const submissionsClose = interaction.options.getString('submissions_close');
             const votingBegins = interaction.options.getString('voting_begins');
             const votingEnds = interaction.options.getString('voting_ends');
+            const approvedMods = interaction.options.getString('approved_mods') || '';
             const image = interaction.options.getAttachment('image');
+
+            // ALTER TABLE challenges ADD COLUMN approved_mods TEXT; - I will forget this if I don't write it down here.
+            
+            let approvedModsList = '';
+            if (approvedMods) {
+                const modEntries = approvedMods.split('"').filter(entry => entry.trim());
+                approvedModsList = modEntries.map(entry => {
+                    const [name, url] = entry.split('|').map(part => part.trim());
+                    if (!name || !url) return null;
+                    return `<:CF5:1373582548030197840> [${name}](${url})`;
+                }).filter(Boolean).join('\n');
+            }
 
             const challengeForum = await interaction.client.channels.fetch(CHALLENGE_FORUM_ID);
 
@@ -124,15 +150,15 @@ module.exports = {
                 name: `Challenge: ${theme}`,
                 message: {
                     content: `<@&${CONTEST_ROLE_ID}>  A new community challenge has begun! Feel free to discuss the challenge here. Enter your submission via /submit when you're ready!`,
-                    files: image ? [image.url] : [],
+                    files: image ? [image.url] : []
                 },
-                autoArchiveDuration: 1440,
-                reason: 'Community Challenge Start',
+                autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+                reason: 'Community Challenge Start'
             });
 
             const [result] = await db.execute(
-                'INSERT INTO challenges (theme, description, submissions_close, voting_begins, voting_ends, thread_id, state, active) VALUES (?, ?, ?, ?, ?, ?, "Submissions", 1)',
-                [theme, description, submissionsClose, votingBegins, votingEnds, thread.id]
+                'INSERT INTO challenges (theme, description, submissions_close, voting_begins, voting_ends, thread_id, state, active, approved_mods) VALUES (?, ?, ?, ?, ?, ?, "Submissions", 1, ?)',
+                [theme, description, submissionsClose, votingBegins, votingEnds, thread.id, approvedMods]
             );            
 
             const submissionsCloseDate = new Date(submissionsClose + ' UTC');
@@ -141,17 +167,52 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setColor(0x7700ff)
-                .setTitle('Community Challenge Started!')
-                .addFields(
-                    { name: 'Theme', value: theme },
-                    { name: 'Description', value: description },
-                    { name: 'Submissions Close', value: `<t:${Math.floor(submissionsCloseDate.getTime() / 1000)}:F>` },
-                    { name: 'Voting Begins', value: `<t:${Math.floor(votingBeginsDate.getTime() / 1000)}:F>` },
-                    { name: 'Voting Ends', value: `<t:${Math.floor(votingEndsDate.getTime() / 1000)}:F>` },
-                    { name: 'How to Participate', value: '1. Type /submit in any channel.\n2. Upload your Image.\n3. Optionally, add the lore/backstory via the "description"!' }
+                .setTitle('🎨 New Community Challenge')
+                .setDescription(
+                    `### ${theme}\n\n` +
+                    `${description}\n` +
+                    `<:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720><:D5:1373582216185118720>`
                 )
-                .setFooter({ text: 'Good luck! We cannot wait to see your submissions!' })
+                .addFields(
+                    { 
+                        name: '⏰ Timeline', 
+                        value: 
+                            `<:CF5:1373582548030197840> **Submissions Close:** <t:${Math.floor(submissionsCloseDate.getTime() / 1000)}:F>\n` +
+                            `<:CF5:1373582548030197840> **Voting Begins:** <t:${Math.floor(votingBeginsDate.getTime() / 1000)}:F>\n` +
+                            `<:CF5:1373582548030197840> **Voting Ends:** <t:${Math.floor(votingEndsDate.getTime() / 1000)}:F>`
+                    },
+                    { 
+                        name: '📝 How to Participate', 
+                        value: 
+                            `<:CF5:1373582548030197840> Use \`/submit\` in any channel\n` +
+                            `<:CF5:1373582548030197840> Upload your Image\n` +
+                            `<:CF5:1373582548030197840> Add your lore/backstory via the "description" field\n` +
+                            `<:CF5:1373582548030197840> Wait for the voting phase to begin!`
+                    },
+                    {
+                        name: '⏳ Time Remaining',
+                        value: 
+                            `<:CF5:1373582548030197840> **Submissions:** <t:${Math.floor(submissionsCloseDate.getTime() / 1000)}:R>\n` +
+                            `<:CF5:1373582548030197840> **Voting:** <t:${Math.floor(votingBeginsDate.getTime() / 1000)}:R> until <t:${Math.floor(votingEndsDate.getTime() / 1000)}:R>`
+                    }
+                )
+                .setFooter({ 
+                    text: 'Good luck! We cannot wait to see your submissions!',
+                    iconURL: interaction.guild.iconURL()
+                })
                 .setTimestamp();
+
+            if (image) {
+                embed.setImage(image.url);
+            }
+
+            // Add approved mods field if there are any
+            if (approvedModsList) {
+                embed.addFields({
+                    name: '📦 Approved Mods',
+                    value: approvedModsList
+                });
+            }
 
             await thread.send({ embeds: [embed] });
 
@@ -167,7 +228,6 @@ module.exports = {
 
             await generalChat.send({ embeds: [announcementEmbed] });
 
-            // Add audit log
             const auditChannel = await interaction.client.channels.fetch(process.env.AUDIT_CHANNEL_ID);
             const auditEmbed = new EmbedBuilder()
                 .setColor(0x2ecc71)
