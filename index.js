@@ -49,6 +49,18 @@ client.on('messageCreate', async (message) => {
     // Cipher is crazy but not crazy enough for us to want it to respond to itself in DMs. :)
     if (message.author.bot) return;
 
+    // I added this because of my Sleep Token addiction. It's a joke.
+    if (message.content.toLowerCase().includes('sleep token')) {
+        const responses = [
+            'The house must endure.',
+            'The cycle must end.',
+            'Worship.',
+            'Nothing lasts forever.'
+        ];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        await message.reply(randomResponse);
+    }
+
     // Checking to see if the message is a Direct Message.
     if (message.channel.type === 1) {
         const embed = new EmbedBuilder()
